@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTheme } from 'next-themes';
 
 // ============================================================
 // SHARED DATA: SINGLE SOURCE OF TRUTH FOR RESEARCH AREAS
@@ -11,6 +14,21 @@ const RESEARCH_AREAS = [
   { id: 'digital-fraud', number: '04', title: 'Digital Fraud', slug: 'digital-fraud', status: 'PENDING' },
   { id: 'identity-security', number: '05', title: 'Identity Security', slug: 'identity-security', status: 'PENDING' }
 ];
+
+function ThemeLogo() {
+  const { resolvedTheme } = useTheme();
+  const logoSource = resolvedTheme === 'light' ? '/lr-logo-light.svg' : '/lr-logo-dark.svg';
+
+  return (
+    <Image
+      src={logoSource}
+      alt="LR"
+      width={44}
+      height={44}
+      className="h-13 w-auto"
+    />
+  );
+}
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -48,13 +66,8 @@ export function Footer() {
               aria-label="LR Research — Home"
               className="mb-8 block transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
             >
-              <Image
-                src="/lr-logo.svg"
-                alt="LR"
-                width={44}
-                height={44}
-                className="h-13 w-auto" 
-              />
+
+              <ThemeLogo />
             </Link>
             
             <div className="flex flex-col gap-2">

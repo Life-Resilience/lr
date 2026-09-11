@@ -58,6 +58,22 @@ function ThemeToggle() {
   );
 }
 
+function ThemeLogo({ className, priority = false }: { className: string; priority?: boolean }) {
+  const { resolvedTheme } = useTheme();
+  const logoSource = resolvedTheme === 'light' ? '/lr-logo-light.svg' : '/lr-logo-dark.svg';
+
+  return (
+    <Image
+      src={logoSource}
+      alt="LR Logo"
+      width={48}
+      height={48}
+      className={className}
+      priority={priority}
+    />
+  );
+}
+
 const DesktopNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   const pathname = usePathname();
   const isActive = pathname === href;
@@ -153,19 +169,13 @@ export function Navbar() {
             
             {/* Brand Identity */}
             <div className="flex items-center gap-4">
+
               <Link 
                 href="/" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
               >
-                <Image 
-                  src="/lr-logo.svg" 
-                  alt="LR Logo" 
-                  width={48} 
-                  height={48} 
-                  className="h-14 w-auto" 
-                  priority
-                />
+                      <ThemeLogo className="h-14 w-auto" priority />
               </Link>
             </div>
 
