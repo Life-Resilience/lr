@@ -50,7 +50,7 @@ function Reveal({
 // ============================================================
 // RESEARCH DATA MODEL
 // ============================================================
-type ResearchStatus = 'COMPLETED' | 'IN PROGRESS' | 'PLANNED';
+type ResearchStatus = 'COMPLETED' | 'IN PROGRESS' | 'PENDING';
 
 interface ResearchEntry {
   id: string;
@@ -86,21 +86,21 @@ const RESEARCH_DATA: ResearchEntry[] = [
   {
     id: 'LR-03',
     title: 'Malware',
-    status: 'PLANNED',
+    status: 'PENDING',
     description: 'Studying the deployment vectors and execution patterns of malicious software affecting end users.',
     href: '/research/malware',
   },
   {
     id: 'LR-04',
     title: 'Digital Fraud',
-    status: 'PLANNED',
+    status: 'PENDING',
     description: 'Examining the systemic mechanisms behind financial exploitation, payment vulnerabilities, and synthetic fraud at scale.',
     href: '/research/digital-fraud',
   },
   {
     id: 'LR-05',
     title: 'Identity Security',
-    status: 'PLANNED',
+    status: 'PENDING',
     description: 'Investigating vulnerabilities in authentication protocols, credential theft, and decentralized access management.',
     href: '/research/identity-security',
   },
@@ -111,7 +111,7 @@ const RESEARCH_DATA: ResearchEntry[] = [
 // ============================================================
 function ResearchRow({ entry }: { entry: ResearchEntry }) {
   const isCompleted = entry.status === 'COMPLETED';
-  const isPlanned = entry.status === 'PLANNED';
+  const isPlanned = entry.status === 'PENDING';
   
   const content = (
     <div className={`grid grid-cols-1 md:grid-cols-[80px_minmax(0,1fr)_180px] lg:grid-cols-[100px_minmax(0,1fr)_220px] gap-8 md:gap-12 py-12 md:py-16 border-t border-border/40 transition-colors duration-300 hover:border-foreground/30`}>
@@ -198,12 +198,12 @@ function ResearchRow({ entry }: { entry: ResearchEntry }) {
 
           {/* Desktop Arrow */}
           <div className="hidden md:flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.15em] text-foreground mt-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            Read <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+            Read <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
           </div>
           
           {/* Mobile Arrow */}
           <div className="md:hidden flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-foreground">
-            Read <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+            Read <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
           </div>
         </div>
       </div>
@@ -213,7 +213,7 @@ function ResearchRow({ entry }: { entry: ResearchEntry }) {
   return (
     <Link 
       href={entry.href} 
-      className="group block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-8"
+      className="group block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-8"
     >
       {content}
     </Link>
@@ -224,6 +224,14 @@ function ResearchRow({ entry }: { entry: ResearchEntry }) {
 // PAGE COMPONENT
 // ============================================================
 export default function ResearchPage() {
+  // Compute index statistics dynamically
+  const stats = {
+    total: String(RESEARCH_DATA.length).padStart(2, '0'),
+    completed: String(RESEARCH_DATA.filter(r => r.status === 'COMPLETED').length).padStart(2, '0'),
+    inProgress: String(RESEARCH_DATA.filter(r => r.status === 'IN PROGRESS').length).padStart(2, '0'),
+    pending: String(RESEARCH_DATA.filter(r => r.status === 'PENDING').length).padStart(2, '0'),
+  };
+
   return (
     <div className="w-full bg-background selection:bg-foreground selection:text-background min-h-screen">
       <main className="mx-auto max-w-[1280px] px-6 md:px-10 lg:px-12 pt-32 pb-16">
@@ -233,9 +241,17 @@ export default function ResearchPage() {
             ========================================================= */}
         <header className="mb-24">
           <Reveal delay={0}>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-8">
-              RESEARCH / 01
-            </div>
+            {/* Breadcrumb Navigation */}
+            <nav aria-label="Breadcrumb" className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-8 flex items-center gap-2">
+              <Link 
+                href="/" 
+                className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
+              >
+                HOME
+              </Link>
+              <span aria-hidden="true">/</span>
+              <span className="text-foreground">RESEARCH</span>
+            </nav>
           </Reveal>
           
           <Reveal delay={100}>
@@ -257,20 +273,20 @@ export default function ResearchPage() {
         <Reveal delay={300}>
           <div className="flex flex-col sm:flex-row gap-12 md:gap-16 lg:gap-24 mt-24 mb-32 pt-8 border-t border-border/40 font-mono text-[10px] uppercase tracking-[0.2em]">
             <div className="flex flex-col">
-              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">05</span> 
+              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">{stats.total}</span> 
               <span className="text-muted-foreground">RESEARCH AREAS</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">01</span> 
+              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">{stats.completed}</span> 
               <span className="text-muted-foreground">COMPLETED</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">01</span> 
-              <span className="text-muted-foreground">ACTIVE</span>
+              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">{stats.inProgress}</span> 
+              <span className="text-muted-foreground">IN PROGRESS</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">03</span> 
-              <span className="text-muted-foreground">PLANNED</span>
+              <span className="text-foreground font-medium text-xl md:text-2xl mb-2">{stats.pending}</span> 
+              <span className="text-muted-foreground">PENDING</span>
             </div>
           </div>
         </Reveal>
@@ -305,14 +321,14 @@ export default function ResearchPage() {
             
             <div className="border-t border-border/40 pt-10">
               <p className="text-base text-foreground mb-6">
-                Have an observation worth researching?
+                Have an observation worth investigating?
               </p>
               <Link 
                 href="/contribute" 
-                className="group inline-flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70"
+                className="group inline-flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
               >
                 <span>Contribute to LR</span>
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
               </Link>
             </div>
           </Reveal>

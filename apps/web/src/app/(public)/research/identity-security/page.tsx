@@ -1,0 +1,287 @@
+"use client";
+
+import { useEffect, useRef, useState, useMemo, ReactNode } from "react";
+import Link from "next/link";
+
+// ============================================================
+// SCROLL REVEAL ANIMATION COMPONENT
+// ============================================================
+function Reveal({ 
+  children, 
+  delay = 0, 
+  className = "" 
+}: { 
+  children: ReactNode; 
+  delay?: number; 
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: isVisible ? `${delay}ms` : "0ms" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ============================================================
+// REUSABLE COMPONENTS
+// ============================================================
+function SectionHeader({ number, title }: { number?: string, title: string }) {
+  return (
+    <div className="mb-12 flex items-baseline gap-4 border-b border-border/40 pb-6">
+      {number && (
+        <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground">
+          {number}
+        </span>
+      )}
+      {number && <span className="text-muted-foreground/40">—</span>}
+      <h2 className="text-sm font-medium uppercase tracking-[0.15em] text-foreground">
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+// ============================================================
+// PAGE COMPONENT
+// ============================================================
+export default function ResearchPage() {
+  const [activeSection, setActiveSection] = useState<string>("context");
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Define sections for ScrollSpy
+  const sections = useMemo(() => [
+    { id: "context", title: "Research Context", label: "Research Context" },
+    { id: "matters", title: "Why This Area Matters", label: "Why This Area Matters" },
+    { id: "intends", title: "What LR Intends to Study", label: "What LR Intends to Study" },
+    { id: "questions", title: "Research Questions", label: "Research Questions" },
+    { id: "open", title: "Open Questions", label: "Open Questions" },
+    { id: "direction", title: "Future Research Direction", label: "Future Research Direction" },
+  ], []);
+
+  // Reading Progress Logic
+  useEffect(() => {
+    const updateProgress = () => {
+      const scrollY = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        setScrollProgress((scrollY / docHeight) * 100);
+      }
+    };
+    
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+    
+    return () => window.removeEventListener("scroll", updateProgress);
+  }, []);
+
+  // ScrollSpy via IntersectionObserver
+  useEffect(() => {
+    const sectionIds = sections.map(s => s.id);
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter(entry => entry.isIntersecting);
+        if (visibleEntries.length > 0) {
+          setActiveSection(visibleEntries[0].target.id);
+        }
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
+    );
+
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [sections]);
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      const y = element.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top: y, behavior: "smooth" });
+      setActiveSection(id);
+    }
+  };
+
+  return (
+    <div className="w-full bg-background selection:bg-foreground selection:text-background min-h-screen relative">
+      
+      {/* READING PROGRESS */}
+      <div className="fixed top-0 left-0 w-full h-[2px] z-50 pointer-events-none bg-border/20">
+        <div 
+           className="h-full bg-foreground transition-all duration-150 ease-out"
+           style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
+      {/* PAGE HEADER */}
+      <header className="border-b border-border/40 pt-32 pb-16">
+        <div className="mx-auto max-w-[1280px] px-6 md:px-10 lg:px-12">
+          <Reveal delay={0}>
+            <div className="mb-12 flex flex-col gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <Link href="/research" className="w-fit hover:text-foreground transition-colors mb-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm">
+                ← BACK TO RESEARCH
+              </Link>
+              <div className="flex gap-4">
+                <span className="text-foreground">LR / RESEARCH</span>
+                <span>LR-05</span>
+              </div>
+            </div>
+          </Reveal>
+          
+          <Reveal delay={100}>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium tracking-tight text-foreground mb-12 leading-[1.05] max-w-4xl">
+              Identity Security
+            </h1>
+          </Reveal>
+
+          <Reveal delay={200}>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 font-mono text-[10px] uppercase tracking-[0.2em]">
+              <div className="flex flex-col gap-2 border-l border-border/60 pl-4">
+                <span className="text-muted-foreground">Research Status</span>
+                <span className="text-foreground font-medium">PENDING</span>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </header>
+
+      {/* MAIN LAYOUT (SIDEBAR + CONTENT) */}
+      <div className="mx-auto max-w-[1280px] px-6 md:px-10 lg:px-12 pt-16 pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-16 lg:gap-24 relative">
+          
+          {/* DESKTOP SIDEBAR INDEX */}
+          <aside className="hidden lg:block">
+            <nav className="sticky top-32 flex flex-col gap-4 text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">
+              <span className="text-foreground font-medium mb-4 tracking-[0.2em]">Contents</span>
+              {sections.map(section => {
+                const isActive = activeSection === section.id;
+                return (
+                  <a 
+                    key={section.id}
+                    href={`#${section.id}`}
+                    onClick={(e) => handleNavClick(e, section.id)}
+                    className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
+                  >
+                    <span className="inline-block w-3 text-center transition-colors duration-300">
+                      {isActive ? <span className="text-foreground">●</span> : ""}
+                    </span>
+                    <span className={`transition-colors duration-300 ${isActive ? "border-b border-foreground/30 pb-[1px] text-foreground" : "text-muted-foreground group-hover:text-foreground/70"}`}>
+                      {section.label}
+                    </span>
+                  </a>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* MOBILE INDEX */}
+          <Reveal className="lg:hidden mb-12">
+            <div className="border border-border/40 p-6 flex flex-col gap-4 text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">
+              <span className="text-foreground font-medium tracking-[0.2em] border-b border-border/40 pb-4">Contents</span>
+              {sections.map(section => {
+                const isActive = activeSection === section.id;
+                return (
+                  <a 
+                    key={section.id}
+                    href={`#${section.id}`} 
+                    onClick={(e) => handleNavClick(e, section.id)}
+                    className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
+                  >
+                    <span className="inline-block w-3 text-center transition-colors duration-300">
+                      {isActive ? <span className="text-foreground">●</span> : ""}
+                    </span>
+                    <span className={`transition-colors duration-300 ${isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"}`}>
+                      {section.label}
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          </Reveal>
+
+          {/* CONTENT SECTIONS */}
+          <main className="flex flex-col gap-24 md:gap-32">
+            
+            <section id="context" className="scroll-mt-32 ">
+              <Reveal>
+                <SectionHeader  title="Research Context" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  Research Context details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+            <section id="matters" className="scroll-mt-32 border-t border-border/40 pt-16">
+              <Reveal>
+                <SectionHeader number="01" title="Why This Area Matters" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  Why This Area Matters details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+            <section id="intends" className="scroll-mt-32 border-t border-border/40 pt-16">
+              <Reveal>
+                <SectionHeader number="02" title="What LR Intends to Study" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  What LR Intends to Study details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+            <section id="questions" className="scroll-mt-32 border-t border-border/40 pt-16">
+              <Reveal>
+                <SectionHeader number="03" title="Research Questions" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  Research Questions details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+            <section id="open" className="scroll-mt-32 border-t border-border/40 pt-16">
+              <Reveal>
+                <SectionHeader number="04" title="Open Questions" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  Open Questions details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+            <section id="direction" className="scroll-mt-32 border-t border-border/40 pt-16">
+              <Reveal>
+                <SectionHeader number="05" title="Future Research Direction" />
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                  Future Research Direction details for Identity Security. This area is currently being investigated. More data and observations will be published as they become available.
+                </p>
+              </Reveal>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}

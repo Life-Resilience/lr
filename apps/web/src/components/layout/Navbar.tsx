@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
-// Clean, geometric SVG icons
 const MenuIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
     <line x1="3" x2="21" y1="10" y2="10" /><line x1="3" x2="21" y1="14" y2="14" />
@@ -18,17 +17,16 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Desktop Navigation Link with subtle hover motion and active dot indicator
-const DesktopNavLink = ({ href, children }) => {
+const DesktopNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   const pathname = usePathname();
   const isActive = pathname === href;
 
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-1.5 text-[13px] tracking-wide transition-all duration-300 ${
+      className={`group flex items-center gap-1.5 text-[13px] tracking-wide transition-colors duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm ${
         isActive 
-          ? 'font-semibold text-foreground' 
+          ? 'font-medium text-foreground' 
           : 'font-medium text-muted-foreground hover:text-foreground'
       }`}
     >
@@ -36,7 +34,7 @@ const DesktopNavLink = ({ href, children }) => {
       {isActive ? (
         <span className="h-1 w-1 rounded-full bg-foreground" />
       ) : (
-        <span className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
+        <span className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" aria-hidden="true">
           →
         </span>
       )}
@@ -50,26 +48,24 @@ export function Navbar() {
   const [isVisible, setIsVisible] = useState(true);
   const pathname = usePathname();
 
-  // Handle scroll state for visibility and architectural transparent-to-solid transition
   useEffect(() => {
     let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Handle transparent-to-solid transition
+      // Transparent-to-solid transition
       setIsScrolled(currentScrollY > 20);
 
-      // Do not hide the navbar if the mobile menu is currently open
       if (isMobileMenuOpen) return;
 
-      // Handle showing/hiding based on scroll direction
-      if (currentScrollY > lastScrollY && currentScrollY > 72) {
-        // Scrolling down past the header height -> hide navbar
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollY) {
-        // Scrolling up -> show navbar
+      // Predictable scroll direction logic
+      if (currentScrollY <= 0) {
         setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setIsVisible(false); // Scroll down -> hide
+      } else if (currentScrollY < lastScrollY) {
+        setIsVisible(true);  // Scroll up -> show
       }
 
       lastScrollY = currentScrollY;
@@ -79,7 +75,6 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobileMenuOpen]);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -89,7 +84,6 @@ export function Navbar() {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isMobileMenuOpen]);
 
-  // Desktop omits "Home", Mobile includes it
   const mobileNavItems = [
     { name: 'Home', href: '/' },
     { name: 'Research', href: '/research' },
@@ -102,76 +96,74 @@ export function Navbar() {
 
   return (
     <>
-      {/* 
-        Main Header 
-        Sits at z-50. Transitions from transparent to blurred/bordered on scroll. 
-        Also translates up and out of view when scrolling down.
-      */}
       <header 
-        className={`fixed top-0 z-50 w-full transition-all duration-500 ${
-          isScrolled 
-            ? 'bg-background/85 backdrop-blur-md border-b border-border/50' 
-            : 'bg-transparent border-transparent'
-        } ${
+        className={`fixed top-0 z-50 w-full transform transition-transform duration-[180ms] ease-out ${
           isVisible ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-6 lg:px-8">
-          
-          {/* Brand Identity */}
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center"
-            >
-              <Image 
-                src="/lr-logo.svg" 
-                alt="LR Logo" 
-                width={48} 
-                height={48} 
-                className="h-14 w-auto" 
-                priority
-              />
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {desktopNavItems.map((item) => (
-              <DesktopNavLink key={item.name} href={item.href}>
-                {item.name}
-              </DesktopNavLink>
-            ))}
+        <div 
+          className={`w-full transition-all duration-500 ${
+            isScrolled 
+              ? 'bg-background/85 backdrop-blur-md border-b border-border/50' 
+              : 'bg-transparent border-transparent'
+          }`}
+        >
+          <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-6 lg:px-8">
             
-            {/* Action Item - Text based, no rounded button styling */}
-            <Link 
-              href="/contribute" 
-              className="group flex items-center gap-1.5 text-[13px] font-medium tracking-wide text-foreground transition-colors ml-4"
-            >
-              <span>Contribute</span>
-              <span className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-                ↗
-              </span>
-            </Link>
-          </nav>
+            {/* Brand Identity */}
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
+              >
+                <Image 
+                  src="/lr-logo.svg" 
+                  alt="LR Logo" 
+                  width={48} 
+                  height={48} 
+                  className="h-14 w-auto" 
+                  priority
+                />
+              </Link>
+            </div>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            className="p-2 -mr-2 text-foreground md:hidden relative z-50"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {isMobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
-          </button>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              {desktopNavItems.map((item) => (
+                <DesktopNavLink key={item.name} href={item.href}>
+                  {item.name}
+                </DesktopNavLink>
+              ))}
+              
+              <Link 
+                href="/contribute" 
+                className="group flex items-center gap-1.5 text-[13px] font-medium tracking-wide text-foreground transition-colors ml-4 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
+              >
+                <span>Contribute</span>
+                <span className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true">
+                  ↗
+                </span>
+              </Link>
+            </nav>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              className="p-2 -mr-2 text-foreground md:hidden relative z-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* 
-        Mobile Navigation Panel 
-        Full screen takeover, mounted but pointer-events toggled for smooth CSS transitions
-      */}
+      {/* Mobile Navigation Panel */}
       <div 
+        id="mobile-navigation"
         className={`fixed inset-0 z-40 flex flex-col bg-background px-6 pt-[104px] pb-12 transition-all duration-500 md:hidden ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
@@ -184,7 +176,7 @@ export function Navbar() {
                 key={item.name}
                 href={item.href} 
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-baseline gap-6 transform transition-all duration-500 ease-out ${
+                className={`flex items-baseline gap-6 transform transition-all duration-500 ease-out focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm w-fit ${
                   isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                 }`}
                 style={{ transitionDelay: `${i * 50}ms` }}
@@ -193,7 +185,7 @@ export function Navbar() {
                   0{i + 1}
                 </span>
                 <span className={`text-3xl tracking-wide transition-colors ${
-                  isActive ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
+                  isActive ? 'font-medium text-foreground' : 'font-medium text-muted-foreground'
                 }`}>
                   {item.name}
                 </span>
@@ -210,10 +202,10 @@ export function Navbar() {
             <Link 
               href="/contribute" 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 text-2xl font-medium tracking-wide text-foreground"
+              className="flex items-center gap-3 text-2xl font-medium tracking-wide text-foreground w-fit focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
             >
               <span>Contribute</span>
-              <span>→</span>
+              <span aria-hidden="true">→</span>
             </Link>
           </div>
         </nav>

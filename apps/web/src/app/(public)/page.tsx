@@ -4,6 +4,40 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 // ============================================================
+// METADATA (Move this to your layout.tsx or a server component)
+// ============================================================
+/*
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'LR — Life & Resilience',
+  description: 'Life & Resilience studies how people and organizations become exposed to digital threats, translating observations into foundational security insights.',
+  openGraph: {
+    title: 'LR — Life & Resilience',
+    description: 'Studying human-centered digital vulnerabilities to build foundational security insights.',
+    type: 'website',
+    url: 'https://...',
+    siteName: 'Life & Resilience',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  }
+};
+*/
+
+// ============================================================
+// SHARED DATA: SINGLE SOURCE OF TRUTH FOR RESEARCH AREAS
+// ============================================================
+const RESEARCH_AREAS = [
+  { id: 'social-engineering', number: '01', title: 'Social Engineering', slug: 'social-engineering', status: 'COMPLETED' },
+  { id: 'phishing', number: '02', title: 'Phishing', slug: 'phishing', status: 'IN PROGRESS' },
+  { id: 'malware', number: '03', title: 'Malware', slug: 'malware', status: 'PENDING' },
+  { id: 'digital-fraud', number: '04', title: 'Digital Fraud', slug: 'digital-fraud', status: 'PENDING' },
+  { id: 'identity-security', number: '05', title: 'Identity Security', slug: 'identity-security', status: 'PENDING' }
+];
+
+// ============================================================
 // SCROLL REVEAL ANIMATION COMPONENT
 // ============================================================
 function Reveal({ 
@@ -75,7 +109,7 @@ export default function HomePage() {
 
           <Reveal delay={300}>
             <p className="mb-20 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl md:leading-relaxed">
-              <strong className="font-medium text-foreground">Life & Resilience</strong> studies how people and organizations become exposed to digital threats—and turns those observations into practical security solutions.
+              <strong className="font-medium text-foreground">Life & Resilience</strong> studies how people and organizations become exposed to digital threats—and translates those observations into foundational security insights.
             </p>
           </Reveal>
 
@@ -83,17 +117,17 @@ export default function HomePage() {
             <div className="flex flex-col items-start gap-8 sm:flex-row sm:items-center sm:gap-12">
               <Link 
                 href="/research" 
-                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70"
+                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
               >
                 <span>Explore Research</span>
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
               </Link>
               <Link 
                 href="/contribute" 
-                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
               >
                 <span>Contribute</span>
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">↗</span>
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">↗</span>
               </Link>
             </div>
           </Reveal>
@@ -173,7 +207,7 @@ export default function HomePage() {
                   </span>
                 </div>
                 {i !== arr.length - 1 && (
-                  <span className="mt-4 text-muted-foreground/40 md:mt-0 md:text-foreground/20 md:rotate-0 rotate-90 w-fit">
+                  <span className="mt-4 text-muted-foreground/40 md:mt-0 md:text-foreground/20 md:rotate-0 rotate-90 w-fit" aria-hidden="true">
                     →
                   </span>
                 )}
@@ -191,78 +225,80 @@ export default function HomePage() {
       </section>
 
       {/* =========================================================
-          04. CURRENT RESEARCH
+          04. CURRENT STATUS (What we are doing now)
           ========================================================= */}
       <section className="border-t border-border/40 bg-muted/20 py-32 md:py-40">
         <div className="mx-auto w-full max-w-5xl px-6 sm:px-8 lg:px-10">
           
           <Reveal>
-            <div className="mb-24 flex items-baseline justify-between border-b border-border/40 pb-6">
-              <h2 className="text-lg font-medium tracking-wide">Current Research</h2>
+            <div className="mb-12 flex items-baseline justify-between border-b border-border/40 pb-6">
+              <h2 className="text-lg font-medium tracking-wide">Current Status</h2>
               <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground">04</span>
             </div>
           </Reveal>
-
-          <Reveal delay={100}>
-            <div className="mb-12 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground">
-              LR / RESEARCH-001 <span className="ml-4 text-muted-foreground">STATUS: COMPLETED</span>
-            </div>
-            
-            <h3 className="mb-16 max-w-2xl text-4xl font-medium leading-tight tracking-tight text-foreground md:text-5xl">
-              Social Engineering & Impersonation Attacks
+          
+          <Reveal>
+            <h3 className="mb-24 max-w-2xl text-xl font-light leading-relaxed text-muted-foreground md:text-2xl">
+              Tracking the active investigations, experiments, and published documentation currently progressing through the LR system.
             </h3>
-
-            <div className="mb-16 flex flex-col gap-5 border-l border-border/60 pl-6">
-              {['Digital Arrest', 'Fake KYC', 'OTP Theft', 'Government / Bank Impersonation', 'Remote-Access Coercion'].map((item) => (
-                <span key={item} className="text-lg tracking-wide text-muted-foreground md:text-xl">
-                  {item}
-                </span>
-              ))}
-            </div>
-
-            <Link 
-              href="/research/social-engineering" 
-              className="group flex w-fit items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground"
-            >
-              <span className="relative">
-                Read the Research
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-foreground opacity-0 transition-all duration-300 group-hover:w-full group-hover:opacity-40" />
-              </span>
-              <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
-            </Link>
           </Reveal>
+
+          <div className="flex flex-col gap-16 md:gap-24">
+            {RESEARCH_AREAS.map((area, index) => (
+              <Reveal key={area.id} delay={index * 100}>
+                <Link 
+                  href={`/research/${area.slug}`} 
+                  className="group flex flex-col items-start gap-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-8 transition-colors"
+                >
+                  <h3 className="uppercase text-2xl md:text-4xl font-medium leading-tight tracking-widest text-foreground group-hover:text-primary transition-colors">
+                    {area.title}
+                  </h3>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground transition-colors">
+                    {area.status}
+                  </div>
+                  <div className="mt-4 flex w-fit items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-2">
+                    <span className="relative">
+                      Explore
+                      <span className="absolute -bottom-1 left-0 h-px w-full bg-foreground opacity-40" />
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* =========================================================
-          05. RESEARCH AREAS
+          05. RESEARCH AREAS (What we study)
           ========================================================= */}
       <section className="border-t border-border/40 py-32 md:py-40">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8 lg:px-10">
           
           <Reveal>
-            <div className="mb-24 flex items-baseline justify-between border-b border-border/40 pb-6">
+            <div className="mb-12 flex items-baseline justify-between border-b border-border/40 pb-6">
               <h2 className="text-lg font-medium tracking-wide">Research Areas</h2>
               <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground">05</span>
             </div>
           </Reveal>
 
+          <Reveal>
+            <h3 className="mb-24 max-w-2xl text-xl font-light leading-relaxed text-muted-foreground md:text-2xl">
+              The fundamental domains that define our study of human-centered vulnerabilities and defensive resilience.
+            </h3>
+          </Reveal>
+
           <div className="flex flex-col">
-            {[
-              { num: '01', title: 'Social Engineering', status: 'COMPLETED' },
-              { num: '02', title: 'Phishing', status: 'IN PROGRESS' },
-              { num: '03', title: 'Malware', status: 'PLANNED' },
-              { num: '04', title: 'Digital Fraud', status: 'PLANNED' },
-              { num: '05', title: 'Identity Security', status: 'PLANNED' },
-            ].map((area, i) => (
-              <Reveal key={area.num} delay={i * 50}>
+            {RESEARCH_AREAS.map((area, i) => (
+              <Reveal key={area.id} delay={i * 50}>
                 <Link 
-                  href={`/research/${area.title.toLowerCase().replace(' ', '-')}`}
-                  className="group flex items-center justify-between border-b border-border/40 py-8 transition-colors duration-300 hover:border-foreground/40 md:py-10"
+                  href={`/research/${area.slug}`}
+                  className="group flex items-center justify-between border-b border-border/40 py-8 transition-colors duration-300 hover:border-foreground/40 md:py-10 focus-visible:outline-none focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:border-transparent rounded-sm px-2 -mx-2"
                 >
                   <div className="flex items-baseline gap-6 transition-transform duration-300 ease-out group-hover:translate-x-2 md:gap-12">
                     <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground group-hover:text-foreground">
-                      {area.num}
+                      {area.number}
                     </span>
                     <span className="text-xl font-medium tracking-wide text-muted-foreground transition-colors duration-300 group-hover:text-foreground md:text-3xl">
                       {area.title}
@@ -273,7 +309,7 @@ export default function HomePage() {
                     <span className={`font-mono text-[10px] tracking-[0.15em] ${area.status === 'COMPLETED' ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
                       {area.status}
                     </span>
-                    <span className="hidden opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100 md:block">
+                    <span className="hidden opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100 md:block" aria-hidden="true">
                       →
                     </span>
                   </div>
@@ -285,7 +321,7 @@ export default function HomePage() {
       </section>
 
       {/* =========================================================
-          06. THE RESEARCH SYSTEM
+          06. THE RESEARCH SYSTEM (Purely Informational)
           ========================================================= */}
       <section className="border-t border-border/40 py-32 md:py-40">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8 lg:px-10">
@@ -311,8 +347,8 @@ export default function HomePage() {
               'CASE STUDIES', 'OPEN PROBLEMS'
             ].map((node, i) => (
               <Reveal key={node} delay={i * 50}>
-                <div className="group flex cursor-default items-center justify-between border-b border-border/30 py-6 transition-colors hover:border-foreground/30">
-                  <div className="flex items-baseline gap-6 transition-transform duration-300 group-hover:translate-x-1">
+                <div className="flex cursor-default items-center justify-between border-b border-border/30 py-6">
+                  <div className="flex items-baseline gap-6">
                     <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground">
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -320,9 +356,6 @@ export default function HomePage() {
                       {node}
                     </span>
                   </div>
-                  <span className="opacity-0 transition-opacity duration-300 group-hover:opacity-40">
-                    +
-                  </span>
                 </div>
               </Reveal>
             ))}
@@ -358,13 +391,13 @@ export default function HomePage() {
           <Reveal delay={300}>
             <Link 
               href="/contribute" 
-              className="group mb-32 flex w-fit items-center gap-3 text-[13px] font-medium uppercase tracking-[0.15em] text-background"
+              className="group mb-32 flex w-fit items-center gap-3 text-[13px] font-medium uppercase tracking-[0.15em] text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-4 focus-visible:ring-offset-foreground rounded-sm"
             >
               <span className="relative">
                 Share an Observation
                 <span className="absolute -bottom-1 left-0 h-px w-0 bg-background opacity-0 transition-all duration-300 group-hover:w-full group-hover:opacity-40" />
               </span>
-              <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+              <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
             </Link>
           </Reveal>
 
@@ -380,7 +413,7 @@ export default function HomePage() {
                     {step}
                   </span>
                   {i !== arr.length - 1 && (
-                    <span className="mt-4 text-background/30 md:mt-0 md:rotate-0 rotate-90 w-fit">
+                    <span className="mt-4 text-background/30 md:mt-0 md:rotate-0 rotate-90 w-fit" aria-hidden="true">
                       →
                     </span>
                   )}
@@ -407,15 +440,15 @@ export default function HomePage() {
             
             <Reveal delay={100}><span className="text-muted-foreground">RESEARCH</span></Reveal>
             
-            <Reveal delay={200}><span className="text-border">↓</span></Reveal>
+            <Reveal delay={200}><span className="text-border" aria-hidden="true">↓</span></Reveal>
             
             <Reveal delay={300}><span className="text-muted-foreground">INTELLIGENCE</span></Reveal>
             
-            <Reveal delay={400}><span className="text-border">↓</span></Reveal>
+            <Reveal delay={400}><span className="text-border" aria-hidden="true">↓</span></Reveal>
             
             <Reveal delay={500}><span className="text-muted-foreground">PRACTICAL SOLUTIONS</span></Reveal>
             
-            <Reveal delay={600}><span className="text-border">↓</span></Reveal>
+            <Reveal delay={600}><span className="text-border" aria-hidden="true">↓</span></Reveal>
             
             <Reveal delay={700}>
               <span className="text-xl font-medium tracking-[0.1em] text-foreground md:text-2xl">
@@ -443,17 +476,17 @@ export default function HomePage() {
             <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
               <Link 
                 href="/research" 
-                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70"
+                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-foreground transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
               >
                 <span>Explore LR Research</span>
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">→</span>
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>
               </Link>
               <Link 
                 href="/contribute" 
-                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+                className="group flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
               >
                 <span>Contribute to the Research</span>
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1">↗</span>
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">↗</span>
               </Link>
             </div>
           </Reveal>

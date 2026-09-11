@@ -112,7 +112,7 @@ function SourceItem({ source }: { source: any }) {
           href={source.url} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="group hover:text-foreground transition-colors flex items-center gap-1"
+          className="group hover:text-foreground transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
         >
           <span className="text-foreground/90 group-hover:underline underline-offset-4 decoration-border/50 transition-all">{source.text}</span>
           <span className="inline-block transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5">↗</span>
@@ -212,7 +212,7 @@ export default function SocialEngineeringPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showAllSources, setShowAllSources] = useState(false);
 
-  // Define sections for ScrollSpy
+  // Define sections for ScrollSpy (Citations now fully integrated)
   const sections = useMemo(() => [
     { id: 'summary', title: 'Executive Summary', label: 'Executive Summary' },
     { id: 'scale', title: '01 Macro Scale', label: '01 Macro Scale' },
@@ -226,6 +226,7 @@ export default function SocialEngineeringPage() {
     { id: 'feasibility', title: '09 Feasibility', label: '09 Feasibility' },
     { id: 'success', title: '10 Success Criteria', label: '10 Success Criteria' },
     { id: 'conclusion', title: '11 Conclusion', label: '11 Conclusion' },
+    { id: 'citations', title: 'Works Cited', label: 'Works Cited', isCitation: true },
   ], []);
 
   // Reading Progress Logic
@@ -322,7 +323,7 @@ export default function SocialEngineeringPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 font-mono text-[10px] uppercase tracking-[0.2em]">
               <div className="flex flex-col gap-2 border-l border-border/60 pl-4">
                 <span className="text-muted-foreground">Research Status</span>
-                <span className="text-foreground font-medium">Final Draft</span>
+                <span className="text-foreground font-medium">COMPLETED</span>
               </div>
               <div className="flex flex-col gap-2 border-l border-border/60 pl-4">
                 <span className="text-muted-foreground">Validation</span>
@@ -357,6 +358,26 @@ export default function SocialEngineeringPage() {
               <span className="text-foreground font-medium mb-4 tracking-[0.2em]">Contents</span>
               {sections.map(section => {
                 const isActive = activeSection === section.id;
+                
+                // Special styling for Citations Section to maintain editorial separation
+                if (section.isCitation) {
+                  return (
+                    <a 
+                      key={section.id}
+                      href={`#${section.id}`} 
+                      onClick={(e) => handleNavClick(e, section.id)} 
+                      className="flex items-center gap-2 mt-8 border-t border-border/40 pt-4 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
+                    >
+                       <span className="inline-block w-3 text-center transition-colors duration-300">
+                         {isActive ? <span className="text-foreground">●</span> : ''}
+                       </span>
+                       <span className={`transition-colors duration-300 ${isActive ? 'border-b border-foreground/30 pb-[1px] text-foreground' : 'text-muted-foreground group-hover:text-foreground/70'}`}>
+                         {section.label}
+                       </span>
+                    </a>
+                  );
+                }
+
                 return (
                   <a 
                     key={section.id}
@@ -373,18 +394,6 @@ export default function SocialEngineeringPage() {
                   </a>
                 );
               })}
-              <a 
-                href="#citations" 
-                onClick={(e) => handleNavClick(e, 'citations')} 
-                className="flex items-center gap-2 mt-8 border-t border-border/40 pt-4 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
-              >
-                 <span className="inline-block w-3 text-center transition-colors duration-300">
-                   {activeSection === 'citations' ? <span className="text-foreground">●</span> : ''}
-                 </span>
-                 <span className={`transition-colors duration-300 ${activeSection === 'citations' ? 'border-b border-foreground/30 pb-[1px] text-foreground' : 'text-muted-foreground group-hover:text-foreground/70'}`}>
-                   Works Cited
-                 </span>
-              </a>
             </nav>
           </aside>
 
@@ -394,6 +403,26 @@ export default function SocialEngineeringPage() {
               <span className="text-foreground font-medium tracking-[0.2em] border-b border-border/40 pb-4">Contents</span>
               {sections.map(section => {
                 const isActive = activeSection === section.id;
+                
+                // Special styling for Citations Section on mobile
+                if (section.isCitation) {
+                  return (
+                    <a 
+                      key={section.id}
+                      href={`#${section.id}`} 
+                      onClick={(e) => handleNavClick(e, section.id)} 
+                      className="flex items-center gap-2 mt-2 border-t border-border/40 pt-4 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
+                    >
+                      <span className="inline-block w-3 text-center transition-colors duration-300">
+                        {isActive ? <span className="text-foreground">●</span> : ''}
+                      </span>
+                      <span className={`transition-colors duration-300 ${isActive ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground/70'}`}>
+                        {section.label}
+                      </span>
+                    </a>
+                  );
+                }
+
                 return (
                   <a 
                     key={section.id}
@@ -410,18 +439,6 @@ export default function SocialEngineeringPage() {
                   </a>
                 );
               })}
-              <a 
-                href="#citations" 
-                onClick={(e) => handleNavClick(e, 'citations')} 
-                className="flex items-center gap-2 mt-2 border-t border-border/40 pt-4 group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:ring-offset-4 rounded-sm"
-              >
-                <span className="inline-block w-3 text-center transition-colors duration-300">
-                  {activeSection === 'citations' ? <span className="text-foreground">●</span> : ''}
-                </span>
-                <span className={`transition-colors duration-300 ${activeSection === 'citations' ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground/70'}`}>
-                  Works Cited
-                </span>
-              </a>
             </div>
           </Reveal>
 
@@ -531,7 +548,7 @@ export default function SocialEngineeringPage() {
                 <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
                   <div className="border-t border-border/40 pt-6">
                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground block mb-4">LEVEL 01 / INFORMATION</span>
-                     <p className="text-sm text-foreground">[Aadhaar Omitted], PAN, OTP, Credentials</p>
+                     <p className="text-sm text-foreground">[Aadhaar Redacted], PAN, OTP, Credentials</p>
                   </div>
                   <div className="border-t border-border/40 pt-6">
                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground block mb-4">LEVEL 02 / DEVICE ACCESS</span>
@@ -630,7 +647,7 @@ export default function SocialEngineeringPage() {
               <Reveal>
                 <SectionHeader number="06" title="Existing Protection Landscape" />
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-16 max-w-3xl">
-                  India&apos;s protection environment is stronger and more rapidly evolving than it is sometimes portrayed. Institutional interventions are actively saving billions.
+                  India&apos;s protection environment is stronger and more rapidly evolving than it is sometimes portrayed. Institutional interventions are actively preventing and recovering significant financial losses.
                 </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
