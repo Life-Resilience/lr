@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 
 const MenuIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
@@ -16,6 +17,46 @@ const CloseIcon = () => (
     <path d="M17 7 7 17" /><path d="m7 7 10 10" />
   </svg>
 );
+
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+);
+
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme !== 'light';
+
+  const handleThemeChange = () => {
+    document.documentElement.classList.add('theme-transition');
+    setTheme(isDark ? 'light' : 'dark');
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition');
+    }, 220);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleThemeChange}
+      className="flex h-9 w-9 items-center justify-center rounded-sm text-foreground transition-colors duration-200 hover:bg-foreground/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4"
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      <span className="transition-transform duration-200" aria-hidden="true">
+        {isDark ? <MoonIcon /> : <SunIcon />}
+      </span>
+    </button>
+  );
+}
 
 const DesktopNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   const pathname = usePathname();
@@ -145,6 +186,8 @@ export function Navbar() {
                   ↗
                 </span>
               </Link>
+
+              <ThemeToggle />
             </nav>
 
             {/* Mobile Menu Toggle */}
@@ -207,6 +250,12 @@ export function Navbar() {
               <span>Contribute</span>
               <span aria-hidden="true">→</span>
             </Link>
+          </div>
+
+          <div className={`mt-8 flex items-center border-t border-border/50 pt-6 transform transition-all duration-500 ease-out ${
+            isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          }`}>
+            <ThemeToggle />
           </div>
         </nav>
 

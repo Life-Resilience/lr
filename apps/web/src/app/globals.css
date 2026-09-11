@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FFFFFF;
-  --surface: #F8FAFC;
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --border: #E2E8F0;
-  --primary: #2563EB;
-  --accent: #06B6D4;
+  color-scheme: dark;
+  --background: #0B0B0B;
+  --surface: #171717;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A3A3A3;
+  --border: #262626;
+  --primary: #1056b9;
+  --accent: #1078b9;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.45);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #080D18;
-    --surface: #0F172A;
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --border: #1E293B;
-    --primary: #3B82F6;
-    --accent: #22D3EE;
-  }
+.light {
+  color-scheme: light;
+  --background: #F7F7F5;
+  --surface: #FFFFFF;
+  --text-primary: #171717;
+  --text-secondary: #686868;
+  --border: #DCDCD8;
+  --primary: #106ab9;
+  --accent: #1064b9;
+  --scrollbar-thumb: rgba(23, 23, 23, 0.18);
+  --scrollbar-thumb-hover: rgba(23, 23, 23, 0.32);
+  --scrollbar-thumb-active: rgba(23, 23, 23, 0.46);
 }
 
 @theme inline {
@@ -27,6 +33,7 @@
   --color-surface: var(--surface);
   --color-foreground: var(--text-primary);
   --color-muted: var(--text-secondary);
+  --color-muted-foreground: var(--text-secondary);
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-accent: var(--accent);
@@ -40,6 +47,14 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.theme-transition,
+.theme-transition * {
+  transition-property: color, background-color, border-color;
+  transition-duration: 180ms;
+  transition-timing-function: ease;
 }
 
 @plugin "@tailwindcss/typography";
@@ -48,22 +63,19 @@ body {
    LR — AUTO-HIDING SCROLLBAR (GEMINI STYLE)
    ========================================================= */
 
-:root {
-  color-scheme: dark;
-}
 
 /* Firefox */
 html {
   scrollbar-width: thin;
   /* Invisible by default */
-  scrollbar-color: transparent transparent; 
+  scrollbar-color: transparent transparent;
   scroll-behavior: smooth;
-  transition: scrollbar-color 0.3s ease;
+  transition: scrollbar-color 180ms ease;
 }
 
 /* Appears on Firefox when hovering the page */
 html:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* Chromium / Safari / Edge */
@@ -86,16 +98,16 @@ html:hover {
 
 /* Thumb becomes softly visible when moving the mouse anywhere on the page */
 body:hover ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--scrollbar-thumb);
 }
 
 /* Thumb gets brighter when you directly hover over the scrollbar itself */
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: var(--scrollbar-thumb-hover) !important;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: rgba(255, 255, 255, 0.45) !important;
+  background-color: var(--scrollbar-thumb-active) !important;
 }
 
 body {
