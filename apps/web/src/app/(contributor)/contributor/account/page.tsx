@@ -27,6 +27,14 @@ export default function AccountPage() {
   const [deleteError, setDeleteError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Password change state
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -105,6 +113,41 @@ export default function AccountPage() {
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete account. Please try again or contact support.");
       setDeleteLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setPasswordSuccess("Password changed successfully.");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setTimeout(() => {
+        setIsChangingPassword(false);
+        setPasswordSuccess("");
+      }, 2500);
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to update password.");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -230,6 +273,80 @@ export default function AccountPage() {
               Log Out
             </button>
           </div>
+        </div>
+
+        {/* SECURITY & PASSWORD SECTION */}
+        <div className="flex flex-col gap-8 border border-border/40 p-8">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Security & Password</h2>
+            {!isChangingPassword && (
+              <button 
+                onClick={() => {
+                  setIsChangingPassword(true);
+                  setPasswordError("");
+                  setPasswordSuccess("");
+                }}
+                className="font-mono text-[10px] uppercase tracking-[0.15em] text-foreground hover:text-muted-foreground transition-colors"
+              >
+                Change Password
+              </button>
+            )}
+          </div>
+
+          {isChangingPassword ? (
+            <div className="flex flex-col gap-6 max-w-md">
+              {passwordError && <span className="text-red-500 font-mono text-[10px] uppercase">{passwordError}</span>}
+              {passwordSuccess && <span className="text-green-600 dark:text-green-500 font-mono text-[10px] uppercase">{passwordSuccess}</span>}
+
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={e => { setNewPassword(e.target.value); setPasswordError(""); }} 
+                  placeholder="Min. 8 characters"
+                  className="bg-transparent border-b border-border/40 py-2 focus:outline-none focus:border-foreground" 
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  value={confirmNewPassword} 
+                  onChange={e => { setConfirmNewPassword(e.target.value); setPasswordError(""); }} 
+                  className="bg-transparent border-b border-border/40 py-2 focus:outline-none focus:border-foreground" 
+                />
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <button 
+                  onClick={handleUpdatePassword}
+                  disabled={passwordLoading}
+                  className="bg-foreground text-background px-6 py-2 font-mono text-[10px] uppercase tracking-[0.15em] hover:opacity-90 disabled:opacity-50"
+                >
+                  {passwordLoading ? "Updating..." : "Update Password"}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsChangingPassword(false);
+                    setPasswordError("");
+                    setNewPassword("");
+                    setConfirmNewPassword("");
+                  }}
+                  disabled={passwordLoading}
+                  className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-[0.15em]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Password Status</span>
+              <span className="text-sm text-foreground">Password is set and active.</span>
+            </div>
+          )}
         </div>
 
         {/* DANGER ZONE */}

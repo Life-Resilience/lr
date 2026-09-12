@@ -6,6 +6,18 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/contributor'
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
+
+  // Handle errors sent by Supabase Auth (e.g. expired link)
+  if (error) {
+    if (next.includes('reset-password')) {
+      return NextResponse.redirect(
+        `${origin}/contribute/forgot-password?error=${encodeURIComponent(errorDescription || 'The password reset link is invalid or has expired.')}`
+      )
+    }
+    return NextResponse.redirect(`${origin}/contribute/login?error=confirmation_failed`)
+  }
 
   if (code) {
     const cookieStore = await cookies()
@@ -29,14 +41,18 @@ export async function GET(request: Request) {
       }
     )
     
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (!error) {
+    if (!exchangeError) {
       const isInternal = next.startsWith('/') && !next.startsWith('//')
       const target = isInternal && next !== '/contribute' && next !== '/contribute/' && !next.startsWith('/contribute/login') && !next.startsWith('/contribute/signup')
         ? next
         : '/contributor'
       return NextResponse.redirect(`${origin}${target}`)
+    } else {
+      if (next.includes('reset-password')) {
+        return NextResponse.redirect(`${origin}/contribute/forgot-password?error=expired`)
+      }
     }
   }
 
