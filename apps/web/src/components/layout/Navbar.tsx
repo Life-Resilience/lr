@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,7 +33,27 @@ const SunIcon = () => (
 );
 
 function ThemeToggle() {
+  const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button
+        type="button"
+        className="flex h-9 w-9 items-center justify-center rounded-sm text-foreground transition-colors duration-200 hover:bg-foreground/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 opacity-70"
+        aria-label="Toggle theme"
+        title="Toggle theme"
+        disabled
+      >
+        <span className="h-[18px] w-[18px]" aria-hidden="true" />
+      </button>
+    );
+  }
+
   const isDark = resolvedTheme !== 'light';
 
   const handleThemeChange = () => {
@@ -59,18 +80,25 @@ function ThemeToggle() {
 }
 
 function ThemeLogo({ className, priority = false }: { className: string; priority?: boolean }) {
-  const { resolvedTheme } = useTheme();
-  const logoSource = resolvedTheme === 'light' ? '/lr-logo-light.svg' : '/lr-logo-dark.svg';
-
   return (
-    <Image
-      src={logoSource}
-      alt="LR Logo"
-      width={48}
-      height={48}
-      className={className}
-      priority={priority}
-    />
+    <>
+      <Image
+        src="/lr-logo-light.svg"
+        alt="LR Logo"
+        width={48}
+        height={48}
+        className={`${className} logo-light`}
+        priority={priority}
+      />
+      <Image
+        src="/lr-logo-dark.svg"
+        alt="LR Logo"
+        width={48}
+        height={48}
+        className={`${className} logo-dark`}
+        priority={priority}
+      />
+    </>
   );
 }
 
@@ -189,7 +217,7 @@ export function Navbar() {
               
               <Link 
                 href="/contribute" 
-                className="group flex items-center gap-1.5 text-[13px] font-medium tracking-wide text-foreground transition-colors ml-4 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
+                className="group flex items-center gap-1.5 text-[13px] font-semibold tracking-wide text-foreground transition-colors ml-4 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground focus-visible:outline-offset-4 rounded-sm"
               >
                 <span>Contribute</span>
                 <span className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true">

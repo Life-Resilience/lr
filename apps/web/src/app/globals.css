@@ -57,6 +57,23 @@ body {
   transition-timing-function: ease;
 }
 
+/* =========================================================
+   THEME LOGO (SSR HYDRATION SAFE)
+   ========================================================= */
+.logo-light {
+  display: none !important;
+}
+.light .logo-light {
+  display: block !important;
+}
+
+.logo-dark {
+  display: block !important;
+}
+.light .logo-dark {
+  display: none !important;
+}
+
 @plugin "@tailwindcss/typography";
 
 /* =========================================================

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
 
 // ============================================================
 // SHARED DATA: SINGLE SOURCE OF TRUTH FOR RESEARCH AREAS
@@ -16,17 +15,23 @@ const RESEARCH_AREAS = [
 ];
 
 function ThemeLogo() {
-  const { resolvedTheme } = useTheme();
-  const logoSource = resolvedTheme === 'light' ? '/lr-logo-light.svg' : '/lr-logo-dark.svg';
-
   return (
-    <Image
-      src={logoSource}
-      alt="LR"
-      width={44}
-      height={44}
-      className="h-13 w-auto"
-    />
+    <>
+      <Image
+        src="/lr-logo-light.svg"
+        alt="LR"
+        width={44}
+        height={44}
+        className="h-13 w-auto logo-light"
+      />
+      <Image
+        src="/lr-logo-dark.svg"
+        alt="LR"
+        width={44}
+        height={44}
+        className="h-13 w-auto logo-dark"
+      />
+    </>
   );
 }
 
@@ -108,6 +113,17 @@ export function Footer() {
                     {area.number} {area.title}
                   </FooterLink>
                 ))}
+              </nav>
+            </div>
+
+            {/* Authentication Column */}
+            <div className="flex flex-col gap-5">
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground">
+                Join LR
+              </span>
+              <nav className="flex flex-col gap-3" aria-label="Footer Authentication">
+                <FooterLink href="/contribute/signup">Join LR / Sign Up</FooterLink>
+                <FooterLink href="/contribute/login">Log In</FooterLink>
               </nav>
             </div>
           </div>
