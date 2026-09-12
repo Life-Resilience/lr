@@ -29,7 +29,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
       const { data: profile, error } = await supabase
         .from("contributor_profiles")
-        .select("onboarding_completed, onboarding_dismissed")
+        .select("onboarding_completed, onboarding_dismissed, onboarding_status")
         .eq("user_id", user.id)
         .single();
 
@@ -37,7 +37,9 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
         console.warn("Contributor profile note:", error.message || error.code || "Profile check note");
       }
 
-      const needsOnboarding = !profile || (!profile.onboarding_completed && !profile.onboarding_dismissed);
+      const isCompleted = profile?.onboarding_completed || profile?.onboarding_status === "COMPLETED";
+      const isDismissed = profile?.onboarding_dismissed || profile?.onboarding_status === "DISMISSED";
+      const needsOnboarding = !profile || (!isCompleted && !isDismissed);
 
       if (needsOnboarding) {
         const query = searchParams.toString();

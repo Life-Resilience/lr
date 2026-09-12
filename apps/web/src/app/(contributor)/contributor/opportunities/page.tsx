@@ -1,140 +1,324 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import Link from "next/link";
+
+interface InterestRecord {
+  id: string;
+  area: string;
+  created_at: string;
+}
+
+const INTEREST_AREAS = [
+  { id: "RESEARCH PARTICIPATION", label: "Research Participation", desc: "Participate in studies, experiments, or research activities conducted by LR." },
+  { id: "RESEARCH ASSISTANCE", label: "Research Assistance", desc: "Help synthesize data, conduct literature reviews, or process findings." },
+  { id: "DATA / EVIDENCE CONTRIBUTION", label: "Data / Evidence Contribution", desc: "Provide datasets, analytics, or structured evidence for ongoing projects." },
+  { id: "INTERVIEWS", label: "Interviews", desc: "Participate in structured interviews regarding specific topics or friction points." },
+  { id: "OTHER COLLABORATION", label: "Other Collaboration", desc: "Propose a different way to collaborate with the LR research team." }
+];
+
+const formatDate = (dateStr: string) => {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(dateStr));
+};
 
 export default function OpportunitiesPage() {
   const supabase = createClient();
+  
+  // State
+  const [authStatus, setAuthStatus] = useState<"LOADING" | "AUTHENTICATED" | "UNAUTHENTICATED">("LOADING");
+  const [interests, setInterests] = useState<InterestRecord[]>([]);
+  const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [area, setArea] = useState("RESEARCH PARTICIPATION");
+  const [error, setError] = useState<string | null>(null);
+  
+  // Form State
+  const [selectedArea, setSelectedArea] = useState<string>("RESEARCH PARTICIPATION");
   const [reason, setReason] = useState("");
   const [experience, setExperience] = useState("");
 
+  useEffect(() => {
+    async function init() {
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) {
+        setAuthStatus("UNAUTHENTICATED");
+        return;
+      }
+      
+      setAuthStatus("AUTHENTICATED");
+      
+      // Load existing interests
+      const { data, error: fetchErr } = await supabase
+        .from("opportunities")
+        .select("id, area, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+        
+      if (!fetchErr && data) {
+        setInterests(data);
+      }
+    }
+    init();
+  }, [supabase]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedArea || !reason.trim()) {
+      setError("Please select an area and explain your interest.");
+      return;
+    }
+
+    // Duplicate protection
+    if (interests.some(i => i.area === selectedArea)) {
+      setError("You have already expressed interest in this area.");
+      return;
+    }
+
     setIsSubmitting(true);
+    setError(null);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Authentication required.");
 
-      const { error } = await supabase
+      const { data, error: insertError } = await supabase
         .from("opportunities")
         .insert({
           user_id: user.id,
-          area,
+          area: selectedArea,
           reason,
-          experience
-        });
+          experience: experience || null
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
-      setSuccess(true);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to submit. Please try again.");
+      if (insertError) throw insertError;
+      
+      // Update local state smoothly
+      setInterests(prev => [data, ...prev]);
+      setShowForm(false);
+      setReason("");
+      setExperience("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err: any) {
+      setError("We couldn't submit your interest. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (authStatus === "LOADING") {
+    return (
+      <div className="p-6 lg:p-12 max-w-4xl mx-auto w-full animate-pulse flex flex-col gap-12 pb-32">
+        <div className="h-12 w-64 bg-muted/40 rounded-sm" />
+        <div className="h-40 w-full bg-muted/20 border border-border/40 rounded-sm" />
+      </div>
+    );
+  }
+
+  if (authStatus === "UNAUTHENTICATED") {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 animate-in fade-in duration-300">
+        <h1 className="text-2xl font-medium tracking-tight text-foreground uppercase mb-4">Sign In Required</h1>
+        <p className="text-[15px] text-muted-foreground max-w-sm mb-8">Please sign in to view and express interest in LR opportunities.</p>
+        <Link href="/contribute/login?next=/contributor/opportunities" className="text-[12px] font-semibold uppercase tracking-widest text-background bg-foreground px-8 py-4 rounded-sm hover:bg-foreground/90 transition-colors">
+          SIGN IN →
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 lg:p-12 max-w-4xl">
-      <div className="mb-16">
-        <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground mb-4">
+    <div className="p-6 lg:p-12 max-w-4xl mx-auto w-full pb-32 animate-in fade-in duration-300">
+      
+      {/* Header */}
+      <div className="flex flex-col gap-3 mb-16">
+        <h1 className="text-[32px] md:text-[40px] font-medium tracking-tight text-foreground leading-none uppercase">
           Opportunities
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-          Opportunities will appear here as LR opens research participation and collaboration opportunities.
+        <p className="text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
+          Participate in LR research and collaboration when relevant opportunities become available.
         </p>
       </div>
 
-      {!success ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-12 border-t border-border/40 pt-12">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-medium tracking-tight text-foreground">
+      {!showForm ? (
+        <div className="flex flex-col gap-16 animate-in fade-in duration-300">
+          
+          {/* OPEN OPPORTUNITIES */}
+          <section className="flex flex-col gap-6">
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3">
+              OPEN OPPORTUNITIES
+            </h2>
+            <div className="border border-border/40 bg-muted/5 p-8 rounded-sm text-center flex flex-col items-center justify-center gap-3">
+              <span className="text-[14px] font-medium text-foreground">No opportunities are currently open.</span>
+              <span className="text-[13.5px] text-muted-foreground max-w-md">
+                New opportunities will appear here when research participation, interviews, or collaborations are available.
+              </span>
+            </div>
+          </section>
+
+          {/* YOUR PARTICIPATION INTERESTS */}
+          <section className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                YOUR PARTICIPATION INTEREST
+              </h2>
+              {interests.length > 0 && (
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="text-[10px] font-semibold uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors"
+                >
+                  + ADD INTEREST
+                </button>
+              )}
+            </div>
+            
+            {interests.length === 0 ? (
+              <div className="flex flex-col gap-6 items-start">
+                <p className="text-[14.5px] text-muted-foreground">You haven&apos;t expressed interest in any participation areas yet.</p>
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="bg-foreground text-background px-6 h-12 rounded-sm text-[12px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-all flex items-center justify-center"
+                >
+                  EXPRESS INTEREST
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {interests.map(interest => {
+                  const areaMeta = INTEREST_AREAS.find(a => a.id === interest.area);
+                  return (
+                    <div key={interest.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-[15px] font-medium text-foreground leading-tight">{areaMeta?.label || interest.area}</h3>
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500 shrink-0" />
+                      </div>
+                      <div className="flex flex-col gap-1 mt-auto pt-2">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS</span>
+                        <span className="text-[13px] text-foreground">Interest recorded on {formatDate(interest.created_at)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        /* EXPRESS INTEREST FORM */
+        <div className="flex flex-col gap-10 animate-in slide-in-from-bottom-4 duration-300">
+          
+          <div className="flex flex-col gap-2">
+            <button 
+              onClick={() => { setShowForm(false); setError(null); }}
+              className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors w-fit mb-6"
+            >
+              ← BACK
+            </button>
+            <h2 className="text-[28px] font-medium tracking-tight text-foreground uppercase">
               Express Interest
             </h2>
-            <p className="text-muted-foreground">
-              Let us know how you would like to participate in the future.
+            <p className="text-[15px] text-muted-foreground leading-relaxed">
+              Tell LR how you&apos;d like to participate in future research.
             </p>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Area of interest
-            </label>
-            <select
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              className="w-full bg-transparent border-b border-border/40 py-3 text-base focus:outline-none focus:border-foreground transition-colors rounded-none text-foreground"
-            >
-              <option value="RESEARCH PARTICIPATION" className="bg-background">Research Participation</option>
-              <option value="RESEARCH ASSISTANCE" className="bg-background">Research Assistance</option>
-              <option value="DATA / EVIDENCE CONTRIBUTION" className="bg-background">Data / Evidence Contribution</option>
-              <option value="INTERVIEWS" className="bg-background">Interviews</option>
-              <option value="OTHER COLLABORATION" className="bg-background">Other Collaboration</option>
-            </select>
-          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-12">
+            
+            {error && (
+              <div className="flex items-center gap-3 text-[13px] text-red-500 bg-red-500/5 px-4 py-3 rounded-sm border border-red-500/20" role="alert">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <div className="flex flex-col gap-4">
-            <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Why you're interested
-            </label>
-            <textarea
-              required
-              rows={4}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Tell us why you want to participate..."
-              className="w-full bg-transparent border border-border/40 p-4 text-base focus:outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground/40 resize-y rounded-sm"
-            />
-          </div>
+            {/* Area Selection */}
+            <div className="flex flex-col gap-5">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3">
+                WHAT WOULD YOU LIKE TO PARTICIPATE IN?
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {INTEREST_AREAS.map(area => (
+                  <button
+                    key={area.id}
+                    type="button"
+                    onClick={() => { setSelectedArea(area.id); setError(null); }}
+                    className={`px-5 py-3 border rounded-sm text-[13.5px] transition-all text-left ${
+                      selectedArea === area.id 
+                        ? 'border-foreground bg-foreground text-background font-medium shadow-sm' 
+                        : 'border-border/60 bg-background text-foreground hover:border-foreground/40'
+                    }`}
+                  >
+                    {area.label}
+                  </button>
+                ))}
+              </div>
+              {/* Dynamic Description for selection */}
+              <div className="bg-muted/5 border border-border/40 p-4 rounded-sm mt-2">
+                <span className="text-[13.5px] text-muted-foreground">
+                  {INTEREST_AREAS.find(a => a.id === selectedArea)?.desc}
+                </span>
+              </div>
+            </div>
 
-          <div className="flex flex-col gap-4">
-            <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Relevant experience (Optional)
-            </label>
-            <textarea
-              rows={3}
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
-              placeholder="Any relevant background or experience..."
-              className="w-full bg-transparent border border-border/40 p-4 text-base focus:outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground/40 resize-y rounded-sm"
-            />
-          </div>
+            {/* Why Interested */}
+            <div className="flex flex-col gap-3">
+              <label htmlFor="reason" className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3">
+                WHY ARE YOU INTERESTED?
+              </label>
+              <p className="text-[13px] text-muted-foreground mb-1">
+                What interests you about participating in this area?
+              </p>
+              <textarea
+                id="reason"
+                required
+                rows={4}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="For example, a research topic you're interested in, experience you'd like to contribute, or what you'd hope to learn."
+                className="w-full bg-background border border-border/60 p-4 h-32 focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all resize-y rounded-sm text-[15px] text-foreground placeholder:text-muted-foreground/50"
+              />
+            </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group w-fit flex items-center gap-3 text-[13px] font-medium uppercase tracking-[0.15em] text-background bg-foreground px-8 py-4 rounded-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4 disabled:opacity-50"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Interest"}
-              {!isSubmitting && <span className="transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden="true">→</span>}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="border-t border-border/40 pt-12 flex flex-col gap-6">
-          <h2 className="text-2xl font-medium tracking-tight text-foreground">
-            Interest received.
-          </h2>
-          <div className="border-l-2 border-foreground pl-6 py-1">
-            <p className="text-base text-muted-foreground italic max-w-xl leading-relaxed">
-              Your interest has been recorded. If a relevant opportunity becomes available, LR may use this information when reviewing participation.
-            </p>
-          </div>
-          <button 
-            onClick={() => {
-              setSuccess(false);
-              setReason("");
-              setExperience("");
-            }}
-            className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground mt-4 w-fit"
-          >
-            Submit Another →
-          </button>
+            {/* Experience */}
+            <div className="flex flex-col gap-3">
+              <label htmlFor="experience" className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3 flex items-center justify-between">
+                <span>RELEVANT EXPERIENCE</span>
+                <span className="text-muted-foreground font-normal">OPTIONAL</span>
+              </label>
+              <p className="text-[13px] text-muted-foreground mb-1">
+                Do you have any relevant background or prior experience in this area?
+              </p>
+              <textarea
+                id="experience"
+                rows={3}
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                placeholder="Briefly describe your relevant background..."
+                className="w-full bg-background border border-border/60 p-4 h-24 focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all resize-y rounded-sm text-[15px] text-foreground placeholder:text-muted-foreground/50"
+              />
+            </div>
+
+            <div className="pt-6 border-t border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <button 
+                type="button"
+                onClick={() => { setShowForm(false); setError(null); }}
+                className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none order-2 sm:order-1"
+              >
+                CANCEL
+              </button>
+              
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto bg-foreground text-background px-8 h-12 rounded-sm text-[12px] font-semibold uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground"
+              >
+                {isSubmitting ? "SUBMITTING..." : "SUBMIT INTEREST"}
+                {!isSubmitting && <ArrowRight className="w-4 h-4" />}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
