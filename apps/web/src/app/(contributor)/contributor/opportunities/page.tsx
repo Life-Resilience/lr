@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ArrowRight, Calendar } from "lucide-react";
 import Link from "next/link";
 
 interface InterestRecord {
@@ -11,13 +11,14 @@ interface InterestRecord {
   created_at: string;
 }
 
-const INTEREST_AREAS = [
-  { id: "RESEARCH PARTICIPATION", label: "Research Participation", desc: "Participate in studies, experiments, or research activities conducted by LR." },
-  { id: "RESEARCH ASSISTANCE", label: "Research Assistance", desc: "Help synthesize data, conduct literature reviews, or process findings." },
-  { id: "DATA / EVIDENCE CONTRIBUTION", label: "Data / Evidence Contribution", desc: "Provide datasets, analytics, or structured evidence for ongoing projects." },
-  { id: "INTERVIEWS", label: "Interviews", desc: "Participate in structured interviews regarding specific topics or friction points." },
-  { id: "OTHER COLLABORATION", label: "Other Collaboration", desc: "Propose a different way to collaborate with the LR research team." }
-];
+interface AvailableOpportunity {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  status: string;
+  created_at: string;
+}
 
 const formatDate = (dateStr: string) => {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(dateStr));
@@ -29,17 +30,32 @@ export default function OpportunitiesPage() {
   // State
   const [authStatus, setAuthStatus] = useState<"LOADING" | "AUTHENTICATED" | "UNAUTHENTICATED">("LOADING");
   const [interests, setInterests] = useState<InterestRecord[]>([]);
+  const [availableOpps, setAvailableOpps] = useState<AvailableOpportunity[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Form State
-  const [selectedArea, setSelectedArea] = useState<string>("RESEARCH PARTICIPATION");
+  const [selectedArea, setSelectedArea] = useState<string>("");
   const [reason, setReason] = useState("");
   const [experience, setExperience] = useState("");
 
   useEffect(() => {
     async function init() {
+      // Fetch available opportunities
+      const { data: opps } = await supabase
+        .from("available_opportunities")
+        .select("*")
+        .eq("status", "OPEN")
+        .order("created_at", { ascending: false });
+        
+      if (opps) {
+        setAvailableOpps(opps);
+        if (opps.length > 0) {
+          setSelectedArea(opps[0].title);
+        }
+      }
+
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) {
         setAuthStatus("UNAUTHENTICATED");
@@ -65,13 +81,13 @@ export default function OpportunitiesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedArea || !reason.trim()) {
-      setError("Please select an area and explain your interest.");
+      setError("Please select an opportunity and explain your interest.");
       return;
     }
 
     // Duplicate protection
     if (interests.some(i => i.area === selectedArea)) {
-      setError("You have already expressed interest in this area.");
+      setError("You have already expressed interest in this opportunity.");
       return;
     }
 
@@ -150,57 +166,72 @@ export default function OpportunitiesPage() {
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3">
               OPEN OPPORTUNITIES
             </h2>
-            <div className="border border-border/40 bg-muted/5 p-8 rounded-sm text-center flex flex-col items-center justify-center gap-3">
-              <span className="text-[14px] font-medium text-foreground">No opportunities are currently open.</span>
-              <span className="text-[13.5px] text-muted-foreground max-w-md">
-                New opportunities will appear here when research participation, interviews, or collaborations are available.
-              </span>
-            </div>
+            
+            {availableOpps.length === 0 ? (
+              <div className="border border-border/40 bg-muted/5 p-8 rounded-sm text-center flex flex-col items-center justify-center gap-3">
+                <span className="text-[14px] font-medium text-foreground">No opportunities are currently open.</span>
+                <span className="text-[13.5px] text-muted-foreground max-w-md">
+                  New opportunities will appear here when research participation, interviews, or collaborations are available.
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {availableOpps.map(opp => (
+                  <div key={opp.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-muted text-foreground">
+                          {opp.type}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {formatDate(opp.created_at)}
+                        </span>
+                      </div>
+                      <h3 className="text-[16px] font-medium text-foreground">{opp.title}</h3>
+                      <p className="text-[14px] text-muted-foreground max-w-xl">{opp.description}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSelectedArea(opp.title);
+                        setShowForm(true);
+                      }}
+                      className="shrink-0 bg-foreground text-background px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-all focus-visible:outline-none"
+                    >
+                      EXPRESS INTEREST
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* YOUR PARTICIPATION INTERESTS */}
           <section className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-3">
               <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                YOUR PARTICIPATION INTEREST
+                YOUR EXPRESSED INTERESTS
               </h2>
-              {interests.length > 0 && (
-                <button 
-                  onClick={() => setShowForm(true)}
-                  className="text-[10px] font-semibold uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors"
-                >
-                  + ADD INTEREST
-                </button>
-              )}
             </div>
             
             {interests.length === 0 ? (
               <div className="flex flex-col gap-6 items-start">
-                <p className="text-[14.5px] text-muted-foreground">You haven&apos;t expressed interest in any participation areas yet.</p>
-                <button 
-                  onClick={() => setShowForm(true)}
-                  className="bg-foreground text-background px-6 h-12 rounded-sm text-[12px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-all flex items-center justify-center"
-                >
-                  EXPRESS INTEREST
-                </button>
+                <p className="text-[14.5px] text-muted-foreground">You haven&apos;t expressed interest in any opportunities yet.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {interests.map(interest => {
-                  const areaMeta = INTEREST_AREAS.find(a => a.id === interest.area);
-                  return (
-                    <div key={interest.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <h3 className="text-[15px] font-medium text-foreground leading-tight">{areaMeta?.label || interest.area}</h3>
-                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500 shrink-0" />
-                      </div>
-                      <div className="flex flex-col gap-1 mt-auto pt-2">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS</span>
-                        <span className="text-[13px] text-foreground">Interest recorded on {formatDate(interest.created_at)}</span>
-                      </div>
+                {interests.map(interest => (
+                  <div key={interest.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="text-[15px] font-medium text-foreground leading-tight">{interest.area}</h3>
+                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500 shrink-0" />
                     </div>
-                  );
-                })}
+                    <div className="flex flex-col gap-1 mt-auto pt-2">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS</span>
+                      <span className="text-[13px] text-foreground">Interest recorded on {formatDate(interest.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </section>
@@ -220,7 +251,7 @@ export default function OpportunitiesPage() {
               Express Interest
             </h2>
             <p className="text-[15px] text-muted-foreground leading-relaxed">
-              Tell LR how you&apos;d like to participate in future research.
+              Tell LR why you&apos;d be a good fit for this opportunity.
             </p>
           </div>
 
@@ -236,29 +267,30 @@ export default function OpportunitiesPage() {
             {/* Area Selection */}
             <div className="flex flex-col gap-5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3">
-                WHAT WOULD YOU LIKE TO PARTICIPATE IN?
+                SELECTED OPPORTUNITY
               </label>
-              <div className="flex flex-wrap gap-3">
-                {INTEREST_AREAS.map(area => (
+              <div className="flex flex-col gap-3">
+                {availableOpps.map(opp => (
                   <button
-                    key={area.id}
+                    key={opp.id}
                     type="button"
-                    onClick={() => { setSelectedArea(area.id); setError(null); }}
-                    className={`px-5 py-3 border rounded-sm text-[13.5px] transition-all text-left ${
-                      selectedArea === area.id 
-                        ? 'border-foreground bg-foreground text-background font-medium shadow-sm' 
-                        : 'border-border/60 bg-background text-foreground hover:border-foreground/40'
+                    onClick={() => { setSelectedArea(opp.title); setError(null); }}
+                    className={`p-4 border rounded-sm text-left transition-all ${
+                      selectedArea === opp.title 
+                        ? 'border-foreground bg-foreground/5 shadow-sm' 
+                        : 'border-border/60 bg-background hover:border-foreground/40'
                     }`}
                   >
-                    {area.label}
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[14px] font-medium ${selectedArea === opp.title ? 'text-foreground' : 'text-foreground'}`}>
+                        {opp.title}
+                      </span>
+                      <span className="text-[13px] text-muted-foreground">
+                        {opp.description}
+                      </span>
+                    </div>
                   </button>
                 ))}
-              </div>
-              {/* Dynamic Description for selection */}
-              <div className="bg-muted/5 border border-border/40 p-4 rounded-sm mt-2">
-                <span className="text-[13.5px] text-muted-foreground">
-                  {INTEREST_AREAS.find(a => a.id === selectedArea)?.desc}
-                </span>
               </div>
             </div>
 
@@ -268,7 +300,7 @@ export default function OpportunitiesPage() {
                 WHY ARE YOU INTERESTED?
               </label>
               <p className="text-[13px] text-muted-foreground mb-1">
-                What interests you about participating in this area?
+                What makes you a good fit for this opportunity?
               </p>
               <textarea
                 id="reason"
@@ -276,7 +308,7 @@ export default function OpportunitiesPage() {
                 rows={4}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="For example, a research topic you're interested in, experience you'd like to contribute, or what you'd hope to learn."
+                placeholder="Briefly explain your interest..."
                 className="w-full bg-background border border-border/60 p-4 h-32 focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all resize-y rounded-sm text-[15px] text-foreground placeholder:text-muted-foreground/50"
               />
             </div>
@@ -288,7 +320,7 @@ export default function OpportunitiesPage() {
                 <span className="text-muted-foreground font-normal">OPTIONAL</span>
               </label>
               <p className="text-[13px] text-muted-foreground mb-1">
-                Do you have any relevant background or prior experience in this area?
+                Do you have any relevant background or prior experience?
               </p>
               <textarea
                 id="experience"
