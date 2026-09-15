@@ -37,6 +37,8 @@ import {
   FileText, 
   Compass, 
   User, 
+  Clock,
+  CheckCircle,
   PanelLeftClose, 
   PanelLeftOpen, 
   LogOut,
@@ -47,7 +49,15 @@ import {
 const WORKSPACE_NAV = [
   { icon: LayoutDashboard, name: "OVERVIEW", href: "/contributor" },
   { icon: PlusCircle, name: "CONTRIBUTE", href: "/contributor/contribute" },
-  { icon: FileText, name: "MY CONTRIBUTIONS", href: "/contributor/contributions" },
+];
+
+const CONTRIBUTIONS_NAV = [
+  { icon: FileText, name: "ALL CONTRIBUTIONS", href: "/contributor/contributions" },
+  { icon: Clock, name: "PENDING", href: "/contributor/pending" },
+  { icon: CheckCircle, name: "REVIEWED", href: "/contributor/reviewed" },
+];
+
+const OPPORTUNITIES_NAV = [
   { icon: Compass, name: "OPPORTUNITIES", href: "/contributor/opportunities" },
 ];
 
@@ -163,6 +173,28 @@ export function ContributorSidebar() {
             <div className="flex flex-col gap-1">
               {!isCollapsed && (
                 <span className="px-5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                  Contributions
+                </span>
+              )}
+              {CONTRIBUTIONS_NAV.map((item) => (
+                <NavItem key={item.href} item={item} collapsed={isCollapsed} />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {!isCollapsed && (
+                <span className="px-5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                  Opportunities
+                </span>
+              )}
+              {OPPORTUNITIES_NAV.map((item) => (
+                <NavItem key={item.href} item={item} collapsed={isCollapsed} />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {!isCollapsed && (
+                <span className="px-5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
                   Account
                 </span>
               )}
@@ -245,6 +277,24 @@ export function ContributorSidebar() {
                 Workspace
               </span>
               {WORKSPACE_NAV.map((item) => (
+                <NavItem key={item.href} item={item} collapsed={false} />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                Contributions
+              </span>
+              {CONTRIBUTIONS_NAV.map((item) => (
+                <NavItem key={item.href} item={item} collapsed={false} />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                Opportunities
+              </span>
+              {OPPORTUNITIES_NAV.map((item) => (
                 <NavItem key={item.href} item={item} collapsed={false} />
               ))}
             </div>

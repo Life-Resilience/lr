@@ -172,6 +172,7 @@ export function Navbar() {
   const mobileNavItems = [
     { name: 'Home', href: '/' },
     { name: 'Research', href: '/research' },
+    { name: 'Opportunities', href: '/opportunities' },
     { name: 'About', href: '/about' },
     { name: 'Progress', href: '/progress' },
     { name: 'Contact', href: '/contact' },

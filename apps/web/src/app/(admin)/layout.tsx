@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { AdminNavbar } from '@/components/admin/AdminNavbar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminSessionGuard } from '@/components/admin/AdminSessionGuard';
-import { verifyAdminToken, FIXED_ADMIN_EMAIL } from '@/lib/admin-auth';
+import { verifyAdminToken, getAdminConfig } from '@/lib/admin-auth';
 
 export default async function AdminLayout({
   children,
@@ -23,10 +23,13 @@ export default async function AdminLayout({
     redirect('/admin/login');
   }
 
+  const { adminEmail } = getAdminConfig();
   const { valid, email } = verifyAdminToken(sessionToken);
-  if (!valid || email?.toLowerCase() !== FIXED_ADMIN_EMAIL) {
+  
+  if (!valid || !adminEmail || email?.toLowerCase() !== adminEmail) {
     redirect('/admin/login?error=unauthorized');
   }
+
   return (
     <div className="flex flex-col min-h-screen bg-background selection:bg-foreground selection:text-background">
       <AdminNavbar />

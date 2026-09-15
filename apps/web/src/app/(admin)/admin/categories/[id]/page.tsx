@@ -1,21 +1,27 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
-import { Search, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, ChevronRight } from "lucide-react";
 import { AdminServiceRoleNotice } from "@/components/admin/AdminServiceRoleNotice";
 
 export const dynamic = "force-dynamic";
 
-export default async function ContributionsPage({
+export default async function CategorySubmissionsPage({
+  params,
   searchParams
 }: {
+  params: Promise<{ id: string }>,
   searchParams: { status?: string }
 }) {
-  const supabase = await createAdminClient();
+  const { id } = await params;
+  const categoryName = id.toUpperCase();
   const currentStatus = searchParams.status || 'all';
+  
+  const supabase = await createAdminClient();
   
   let query = supabase
     .from('contributions')
-    .select('id, title, type, status, created_at, user_id')
+    .select('id, title, status, created_at, user_id')
+    .eq('type', categoryName)
     .order('created_at', { ascending: false });
 
   if (currentStatus === 'pending') {
@@ -42,12 +48,16 @@ export default async function ContributionsPage({
 
   return (
     <div className="w-full max-w-6xl mx-auto px-6 py-10 lg:py-12 animate-in fade-in duration-300">
+      <Link href="/admin/categories" className="inline-flex items-center gap-2 text-[11px] font-mono text-muted-foreground hover:text-foreground uppercase tracking-widest mb-8 transition-colors">
+        <ArrowLeft className="w-3 h-3" /> Back to Categories
+      </Link>
+
       <div className="flex flex-col gap-5 mb-10">
         <h1 className="text-[32px] md:text-[40px] font-medium tracking-tight text-foreground leading-none uppercase">
-          Contributions
+          {categoryName}
         </h1>
         <p className="text-[17px] text-muted-foreground leading-relaxed">
-          Manage all submissions, reviews, and applications.
+          Manage {categoryName.toLowerCase()} submissions.
         </p>
       </div>
 
@@ -56,7 +66,7 @@ export default async function ContributionsPage({
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-border/40 mb-8 overflow-x-auto pb-1">
         <Link 
-          href="/admin/contributions?status=all"
+          href={`/admin/categories/${id}?status=all`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'all' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -64,7 +74,7 @@ export default async function ContributionsPage({
           ALL
         </Link>
         <Link 
-          href="/admin/contributions?status=pending"
+          href={`/admin/categories/${id}?status=pending`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'pending' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -72,7 +82,7 @@ export default async function ContributionsPage({
           PENDING
         </Link>
         <Link 
-          href="/admin/contributions?status=under-review"
+          href={`/admin/categories/${id}?status=under-review`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'under-review' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -80,7 +90,7 @@ export default async function ContributionsPage({
           UNDER REVIEW
         </Link>
         <Link 
-          href="/admin/contributions?status=needs-changes"
+          href={`/admin/categories/${id}?status=needs-changes`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'needs-changes' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -88,7 +98,7 @@ export default async function ContributionsPage({
           NEEDS CHANGES
         </Link>
         <Link 
-          href="/admin/contributions?status=accepted"
+          href={`/admin/categories/${id}?status=accepted`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'accepted' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -96,7 +106,7 @@ export default async function ContributionsPage({
           ACCEPTED
         </Link>
         <Link 
-          href="/admin/contributions?status=rejected"
+          href={`/admin/categories/${id}?status=rejected`}
           className={`pb-3 text-[11px] font-semibold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
             currentStatus === 'rejected' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
@@ -111,7 +121,7 @@ export default async function ContributionsPage({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Search contributions..." 
+              placeholder={`Search ${categoryName.toLowerCase()}...`}
               className="w-full pl-9 pr-4 py-2 bg-background border border-border/60 rounded-sm text-sm focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
@@ -125,7 +135,6 @@ export default async function ContributionsPage({
             <thead>
               <tr className="border-b border-border/40 bg-muted/10">
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">ID / Title</th>
-                <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Type</th>
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Contributor</th>
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Date</th>
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Status</th>
@@ -135,8 +144,8 @@ export default async function ContributionsPage({
             <tbody>
               {(!contributions || contributions.length === 0) ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
-                    No contributions found.
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
+                    No submissions found.
                   </td>
                 </tr>
               ) : (
@@ -154,9 +163,6 @@ export default async function ContributionsPage({
                           </span>
                           <span className="font-medium text-foreground truncate max-w-[250px]">{c.title}</span>
                         </div>
-                      </td>
-                      <td className="py-4 px-6 text-muted-foreground text-sm uppercase font-mono tracking-widest">
-                        {c.type === 'APPLICATION' ? 'APPLICATION' : c.type}
                       </td>
                       <td className="py-4 px-6 text-muted-foreground text-sm truncate max-w-[150px]">{displayName}</td>
                       <td className="py-4 px-6 text-muted-foreground text-sm">{new Date(c.created_at).toLocaleDateString()}</td>

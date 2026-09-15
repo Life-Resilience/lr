@@ -11,7 +11,7 @@ export default async function ReviewQueuePage() {
   const { data: contributions } = await supabase
     .from('contributions')
     .select('id, title, type, status, created_at, user_id')
-    .in('status', ['SUBMITTED', 'IN_REVIEW'])
+    .in('status', ['SUBMITTED', 'UNDER REVIEW'])
     .order('created_at', { ascending: true });
 
   const userIds = [...new Set((contributions || []).map(c => c.user_id))];
@@ -77,7 +77,11 @@ export default async function ReviewQueuePage() {
                       <td className="py-4 px-6 text-muted-foreground text-sm truncate max-w-[150px]">{displayName}</td>
                       <td className="py-4 px-6 text-muted-foreground text-sm">{new Date(c.created_at).toLocaleDateString()}</td>
                       <td className="py-4 px-6">
-                        <span className="inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-cyan-500/10 text-cyan-500">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-mono uppercase tracking-widest ${
+                          c.status === 'UNDER REVIEW' ? 'bg-blue-500/10 text-blue-500' :
+                          c.status === 'NEEDS CHANGES' ? 'bg-yellow-500/10 text-yellow-600' :
+                          'bg-cyan-500/10 text-cyan-500'
+                        }`}>
                           {c.status}
                         </span>
                       </td>

@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle, CheckCircle2, ArrowRight, Calendar } from "lucide-react";
+import { CheckCircle2, ArrowRight, Calendar } from "lucide-react";
 import Link from "next/link";
 
 interface InterestRecord {
@@ -31,14 +31,7 @@ export default function OpportunitiesPage() {
   const [authStatus, setAuthStatus] = useState<"LOADING" | "AUTHENTICATED" | "UNAUTHENTICATED">("LOADING");
   const [interests, setInterests] = useState<InterestRecord[]>([]);
   const [availableOpps, setAvailableOpps] = useState<AvailableOpportunity[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Form State
-  const [selectedArea, setSelectedArea] = useState<string>("");
-  const [reason, setReason] = useState("");
-  const [experience, setExperience] = useState("");
+  const [applications, setApplications] = useState<any[]>([]);
 
   useEffect(() => {
     async function init() {
@@ -46,14 +39,11 @@ export default function OpportunitiesPage() {
       const { data: opps } = await supabase
         .from("available_opportunities")
         .select("*")
-        .eq("status", "OPEN")
+        .eq("status", "PUBLISHED")
         .order("created_at", { ascending: false });
         
       if (opps) {
         setAvailableOpps(opps);
-        if (opps.length > 0) {
-          setSelectedArea(opps[0].title);
-        }
       }
 
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -65,64 +55,30 @@ export default function OpportunitiesPage() {
       setAuthStatus("AUTHENTICATED");
       
       // Load existing interests
-      const { data, error: fetchErr } = await supabase
-        .from("opportunities")
+      const { data: interestsData } = await supabase
+        .from("opportunities") // The table used for participant interests
         .select("id, area, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
         
-      if (!fetchErr && data) {
-        setInterests(data);
+      if (interestsData) {
+        setInterests(interestsData);
+      }
+
+      // Load applications
+      const { data: appsData } = await supabase
+        .from("contributions")
+        .select("id, status, created_at, metadata")
+        .eq("user_id", user.id)
+        .eq("type", "APPLICATION")
+        .order("created_at", { ascending: false });
+
+      if (appsData) {
+        setApplications(appsData);
       }
     }
     init();
   }, [supabase]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedArea || !reason.trim()) {
-      setError("Please select an opportunity and explain your interest.");
-      return;
-    }
-
-    // Duplicate protection
-    if (interests.some(i => i.area === selectedArea)) {
-      setError("You have already expressed interest in this opportunity.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Authentication required.");
-
-      const { data, error: insertError } = await supabase
-        .from("opportunities")
-        .insert({
-          user_id: user.id,
-          area: selectedArea,
-          reason,
-          experience: experience || null
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-      
-      // Update local state smoothly
-      setInterests(prev => [data, ...prev]);
-      setShowForm(false);
-      setReason("");
-      setExperience("");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err: any) {
-      setError("We couldn't submit your interest. Please check your connection and try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   if (authStatus === "LOADING") {
     return (
@@ -158,201 +114,121 @@ export default function OpportunitiesPage() {
         </p>
       </div>
 
-      {!showForm ? (
-        <div className="flex flex-col gap-16 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-16">
+        
+        {/* OPEN OPPORTUNITIES */}
+        <section className="flex flex-col gap-6">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3">
+            OPEN OPPORTUNITIES
+          </h2>
           
-          {/* OPEN OPPORTUNITIES */}
-          <section className="flex flex-col gap-6">
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3">
-              OPEN OPPORTUNITIES
-            </h2>
-            
-            {availableOpps.length === 0 ? (
-              <div className="border border-border/40 bg-muted/5 p-8 rounded-sm text-center flex flex-col items-center justify-center gap-3">
-                <span className="text-[14px] font-medium text-foreground">No opportunities are currently open.</span>
-                <span className="text-[13.5px] text-muted-foreground max-w-md">
-                  New opportunities will appear here when research participation, interviews, or collaborations are available.
-                </span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {availableOpps.map(opp => (
-                  <div key={opp.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-muted text-foreground">
-                          {opp.type}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {formatDate(opp.created_at)}
-                        </span>
-                      </div>
-                      <h3 className="text-[16px] font-medium text-foreground">{opp.title}</h3>
-                      <p className="text-[14px] text-muted-foreground max-w-xl">{opp.description}</p>
+          {availableOpps.length === 0 ? (
+            <div className="border border-border/40 bg-muted/5 p-8 rounded-sm text-center flex flex-col items-center justify-center gap-4">
+              <span className="text-[14px] font-medium text-foreground">No specific opportunities are currently open.</span>
+              <span className="text-[13.5px] text-muted-foreground max-w-md mb-2">
+                However, LR is always looking for relevant experiences. You can express your general interest below.
+              </span>
+              <Link href="/contributor/opportunities/interest" className="bg-foreground text-background px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-all focus-visible:outline-none flex items-center justify-center">
+                EXPRESS GENERAL INTEREST
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {availableOpps.map(opp => (
+                <div key={opp.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-foreground/40 transition-colors">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-muted text-foreground">
+                        {opp.type}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono uppercase tracking-widest flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {formatDate(opp.created_at)}
+                      </span>
                     </div>
-                    <button 
-                      onClick={() => {
-                        setSelectedArea(opp.title);
-                        setShowForm(true);
-                      }}
-                      className="shrink-0 bg-foreground text-background px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-all focus-visible:outline-none"
-                    >
-                      EXPRESS INTEREST
-                    </button>
+                    <h3 className="text-[16px] font-medium text-foreground">{opp.title}</h3>
+                    <p className="text-[14px] text-muted-foreground max-w-xl line-clamp-2">{opp.description}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
+                  <Link 
+                    href={`/contributor/opportunities/${opp.id}`}
+                    className="shrink-0 bg-background border border-border/60 text-foreground px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-muted/50 transition-all focus-visible:outline-none flex items-center justify-center"
+                  >
+                    VIEW DETAILS
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
-          {/* YOUR PARTICIPATION INTERESTS */}
+        {/* EXPRESS INTEREST FALLBACK */}
+        {availableOpps.length > 0 && (
+          <section className="flex flex-col gap-4 border border-border/40 bg-muted/5 p-6 md:p-8 rounded-sm">
+            <h2 className="text-[15px] font-medium text-foreground">Don&apos;t see a fit?</h2>
+            <p className="text-[14px] text-muted-foreground max-w-2xl mb-2">
+              If none of the open opportunities match your experience, you can submit a general interest form. We will contact you when a relevant research project begins.
+            </p>
+            <Link href="/contributor/opportunities/interest" className="w-fit text-[11px] font-semibold uppercase tracking-widest text-foreground flex items-center gap-2 hover:text-muted-foreground transition-colors">
+              EXPRESS GENERAL INTEREST <ArrowRight className="w-4 h-4" />
+            </Link>
+          </section>
+        )}
+
+        {/* YOUR APPLICATIONS */}
+        {applications.length > 0 && (
           <section className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-3">
               <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                YOUR EXPRESSED INTERESTS
+                YOUR APPLICATIONS
               </h2>
             </div>
             
-            {interests.length === 0 ? (
-              <div className="flex flex-col gap-6 items-start">
-                <p className="text-[14.5px] text-muted-foreground">You haven&apos;t expressed interest in any opportunities yet.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {interests.map(interest => (
-                  <div key={interest.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {applications.map(app => {
+                const oppTitle = app.metadata?.opportunity_title || "Unknown Opportunity";
+                return (
+                  <Link key={app.id} href={`/contributor/contributions/${app.id}`} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3 hover:border-foreground/30 transition-colors">
                     <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-[15px] font-medium text-foreground leading-tight">{interest.area}</h3>
+                      <h3 className="text-[15px] font-medium text-foreground leading-tight">{oppTitle}</h3>
                       <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500 shrink-0" />
                     </div>
                     <div className="flex flex-col gap-1 mt-auto pt-2">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS</span>
-                      <span className="text-[13px] text-foreground">Interest recorded on {formatDate(interest.created_at)}</span>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS: {app.status}</span>
+                      <span className="text-[13px] text-foreground">Applied on {formatDate(app.created_at)}</span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  </Link>
+                );
+              })}
+            </div>
           </section>
-        </div>
-      ) : (
-        /* EXPRESS INTEREST FORM */
-        <div className="flex flex-col gap-10 animate-in slide-in-from-bottom-4 duration-300">
-          
-          <div className="flex flex-col gap-2">
-            <button 
-              onClick={() => { setShowForm(false); setError(null); }}
-              className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors w-fit mb-6"
-            >
-              ← BACK
-            </button>
-            <h2 className="text-[28px] font-medium tracking-tight text-foreground uppercase">
-              Express Interest
-            </h2>
-            <p className="text-[15px] text-muted-foreground leading-relaxed">
-              Tell LR why you&apos;d be a good fit for this opportunity.
-            </p>
-          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-12">
+        {/* YOUR PARTICIPATION INTERESTS */}
+        {interests.length > 0 && (
+          <section className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                GENERAL INTERESTS
+              </h2>
+            </div>
             
-            {error && (
-              <div className="flex items-center gap-3 text-[13px] text-red-500 bg-red-500/5 px-4 py-3 rounded-sm border border-red-500/20" role="alert">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Area Selection */}
-            <div className="flex flex-col gap-5">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3">
-                SELECTED OPPORTUNITY
-              </label>
-              <div className="flex flex-col gap-3">
-                {availableOpps.map(opp => (
-                  <button
-                    key={opp.id}
-                    type="button"
-                    onClick={() => { setSelectedArea(opp.title); setError(null); }}
-                    className={`p-4 border rounded-sm text-left transition-all ${
-                      selectedArea === opp.title 
-                        ? 'border-foreground bg-foreground/5 shadow-sm' 
-                        : 'border-border/60 bg-background hover:border-foreground/40'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className={`text-[14px] font-medium ${selectedArea === opp.title ? 'text-foreground' : 'text-foreground'}`}>
-                        {opp.title}
-                      </span>
-                      <span className="text-[13px] text-muted-foreground">
-                        {opp.description}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {interests.map(interest => (
+                <div key={interest.id} className="border border-border/40 bg-background p-6 rounded-sm flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-[15px] font-medium text-foreground leading-tight">{interest.area}</h3>
+                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500 shrink-0" />
+                  </div>
+                  <div className="flex flex-col gap-1 mt-auto pt-2">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">STATUS: ON FILE</span>
+                    <span className="text-[13px] text-foreground">Recorded on {formatDate(interest.created_at)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            {/* Why Interested */}
-            <div className="flex flex-col gap-3">
-              <label htmlFor="reason" className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3">
-                WHY ARE YOU INTERESTED?
-              </label>
-              <p className="text-[13px] text-muted-foreground mb-1">
-                What makes you a good fit for this opportunity?
-              </p>
-              <textarea
-                id="reason"
-                required
-                rows={4}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Briefly explain your interest..."
-                className="w-full bg-background border border-border/60 p-4 h-32 focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all resize-y rounded-sm text-[15px] text-foreground placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            {/* Experience */}
-            <div className="flex flex-col gap-3">
-              <label htmlFor="experience" className="text-[11px] font-semibold uppercase tracking-widest text-foreground border-b border-border/40 pb-3 flex items-center justify-between">
-                <span>RELEVANT EXPERIENCE</span>
-                <span className="text-muted-foreground font-normal">OPTIONAL</span>
-              </label>
-              <p className="text-[13px] text-muted-foreground mb-1">
-                Do you have any relevant background or prior experience?
-              </p>
-              <textarea
-                id="experience"
-                rows={3}
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                placeholder="Briefly describe your relevant background..."
-                className="w-full bg-background border border-border/60 p-4 h-24 focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all resize-y rounded-sm text-[15px] text-foreground placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            <div className="pt-6 border-t border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              <button 
-                type="button"
-                onClick={() => { setShowForm(false); setError(null); }}
-                className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none order-2 sm:order-1"
-              >
-                CANCEL
-              </button>
-              
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto bg-foreground text-background px-8 h-12 rounded-sm text-[12px] font-semibold uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground"
-              >
-                {isSubmitting ? "SUBMITTING..." : "SUBMIT INTEREST"}
-                {!isSubmitting && <ArrowRight className="w-4 h-4" />}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

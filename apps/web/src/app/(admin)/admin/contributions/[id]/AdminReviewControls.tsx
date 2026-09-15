@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, MessageSquare, Save } from "lucide-react";
-import { approveContribution, rejectContribution, requestChanges, saveAdminNote } from "../../actions";
+import { Check, X, MessageSquare, Save, Clock } from "lucide-react";
+import { acceptContribution, rejectContribution, requestChanges, saveAdminNote, markUnderReview } from "../../actions";
 
 export function AdminReviewControls({ 
   contributionId, 
@@ -20,11 +20,23 @@ export function AdminReviewControls({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleMarkUnderReview = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await markUnderReview(contributionId);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleApprove = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await approveContribution(contributionId, feedback);
+      await acceptContribution(contributionId, feedback);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -86,6 +98,21 @@ export function AdminReviewControls({
         
         {error && <div className="text-red-500 text-xs bg-red-500/10 p-2 rounded-sm">{error}</div>}
 
+        {initialStatus === "SUBMITTED" && (
+          <div className="flex flex-col gap-3 border-b border-border/40 pb-6 mb-2">
+            <button 
+              onClick={handleMarkUnderReview}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 w-full text-[11px] font-semibold uppercase tracking-widest text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-3 rounded-sm transition-colors disabled:opacity-50"
+            >
+              <Clock className="w-4 h-4" /> Mark Under Review
+            </button>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Let the contributor know you are looking at it.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
             Feedback to Contributor (Required for Changes/Reject)
@@ -102,14 +129,14 @@ export function AdminReviewControls({
         <div className="flex flex-col gap-3 pt-2">
           <button 
             onClick={handleApprove}
-            disabled={isLoading || initialStatus === 'APPROVED'}
+            disabled={isLoading || initialStatus === 'ACCEPTED'}
             className="flex items-center justify-center gap-2 w-full text-[11px] font-semibold uppercase tracking-widest text-green-600 bg-green-500/10 hover:bg-green-500/20 px-4 py-3 rounded-sm transition-colors disabled:opacity-50"
           >
-            <Check className="w-4 h-4" /> Approve
+            <Check className="w-4 h-4" /> Accept
           </button>
           <button 
             onClick={handleRequestChanges}
-            disabled={isLoading || initialStatus === 'NEEDS_CHANGES'}
+            disabled={isLoading || initialStatus === 'NEEDS CHANGES'}
             className="flex items-center justify-center gap-2 w-full text-[11px] font-semibold uppercase tracking-widest text-yellow-600 bg-yellow-500/10 hover:bg-yellow-500/20 px-4 py-3 rounded-sm transition-colors disabled:opacity-50"
           >
             <MessageSquare className="w-4 h-4" /> Request Changes

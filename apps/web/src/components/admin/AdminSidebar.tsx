@@ -10,7 +10,9 @@ import {
   ListChecks, 
   Users, 
   FileStack,
+  FolderTree,
   Settings,
+  MessageSquare,
   Globe,
   PanelLeftClose, 
   PanelLeftOpen, 
@@ -53,10 +55,12 @@ const WORKSPACE_NAV = [
 const PEOPLE_NAV = [
   { icon: Users, name: "CONTRIBUTORS", href: "/admin/contributors" },
   { icon: Globe, name: "OPPORTUNITIES", href: "/admin/opportunities" },
+  { icon: MessageSquare, name: "COMMUNITY FEEDBACK", href: "/admin/feedback" },
 ];
 
 const CONTRIBUTIONS_NAV = [
   { icon: FileStack, name: "ALL CONTRIBUTIONS", href: "/admin/contributions" },
+  { icon: FolderTree, name: "CATEGORIES", href: "/admin/categories" },
 ];
 
 const SYSTEM_NAV = [

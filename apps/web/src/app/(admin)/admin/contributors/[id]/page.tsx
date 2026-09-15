@@ -25,9 +25,9 @@ export default async function ContributorProfilePage({ params }: { params: Promi
 
   const stats = {
     total: contributions?.length || 0,
-    approved: contributions?.filter(c => c.status === 'APPROVED').length || 0,
-    inReview: contributions?.filter(c => c.status === 'IN_REVIEW' || c.status === 'SUBMITTED').length || 0,
-    needsChanges: contributions?.filter(c => c.status === 'NEEDS_CHANGES').length || 0,
+    accepted: contributions?.filter(c => c.status === 'ACCEPTED').length || 0,
+    underReview: contributions?.filter(c => c.status === 'UNDER REVIEW' || c.status === 'SUBMITTED').length || 0,
+    needsChanges: contributions?.filter(c => c.status === 'NEEDS CHANGES').length || 0,
   };
 
   return (
@@ -80,12 +80,12 @@ export default async function ContributorProfilePage({ params }: { params: Promi
               <span className="text-2xl font-medium text-foreground">{stats.total}</span>
             </div>
             <div className="bg-surface border border-border/40 p-4 rounded-sm flex flex-col gap-2 text-center">
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Approved</span>
-              <span className="text-2xl font-medium text-green-500">{stats.approved}</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Accepted</span>
+              <span className="text-2xl font-medium text-green-500">{stats.accepted}</span>
             </div>
             <div className="bg-surface border border-border/40 p-4 rounded-sm flex flex-col gap-2 text-center">
               <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">In Review</span>
-              <span className="text-2xl font-medium text-foreground">{stats.inReview}</span>
+              <span className="text-2xl font-medium text-foreground">{stats.underReview}</span>
             </div>
             <div className="bg-surface border border-border/40 p-4 rounded-sm flex flex-col gap-2 text-center">
               <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Needs Changes</span>
@@ -106,18 +106,22 @@ export default async function ContributorProfilePage({ params }: { params: Promi
                   className="flex flex-col md:flex-row md:items-center justify-between p-4 border-b border-border/40 last:border-0 hover:bg-muted/10 transition-colors gap-4"
                 >
                   <div className="flex flex-col gap-1 overflow-hidden">
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
+                      {c.id.split('-')[0]}-{c.id.split('-')[1]}
+                    </span>
                     <span className="text-sm font-medium text-foreground truncate">{c.title}</span>
                     <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                      <span>{c.type}</span>
+                      <span>{c.type === 'APPLICATION' ? 'APPLICATION' : c.type}</span>
                       <span>•</span>
                       <span>{new Date(c.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 md:w-32 md:shrink-0 justify-between md:justify-end">
                     <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded-sm ${
-                      c.status === 'APPROVED' ? 'bg-green-500/10 text-green-500' :
+                      c.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500' :
                       c.status === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
-                      c.status === 'NEEDS_CHANGES' ? 'bg-yellow-500/10 text-yellow-500' :
+                      c.status === 'NEEDS CHANGES' ? 'bg-yellow-500/10 text-yellow-500' :
+                      c.status === 'UNDER REVIEW' ? 'bg-blue-500/10 text-blue-500' :
                       'bg-muted text-muted-foreground'
                     }`}>
                       {c.status}

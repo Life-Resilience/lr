@@ -1,20 +1,14 @@
 import crypto from 'crypto';
 
-export const FIXED_ADMIN_EMAIL = 'jothishgandham2@gmail.com';
-export const FIXED_ADMIN_PASSWORD = 'admin@123456';
-export const FIXED_ADMIN_MFA_SECRET = 'JBSWY3DPEHPK3PXP';
-
-const AUTH_SECRET = process.env.ADMIN_PASSWORD || FIXED_ADMIN_PASSWORD;
-
 export function getAdminConfig() {
-  const adminEmail = (process.env.ADMIN_EMAIL || FIXED_ADMIN_EMAIL).trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD || FIXED_ADMIN_PASSWORD;
-  const adminMfaSecret = (process.env.ADMIN_MFA_SECRET || FIXED_ADMIN_MFA_SECRET).replace(/\s+/g, '').toUpperCase();
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+  const adminMfaSecret = (process.env.ADMIN_MFA_SECRET || '').replace(/\s+/g, '').toUpperCase();
 
   return {
     adminEmail,
     adminPassword,
-    adminMfaSecret: FIXED_ADMIN_MFA_SECRET,
+    adminMfaSecret,
   };
 }
 
@@ -22,11 +16,10 @@ export function validateAdminCredentials(emailInput: string, passwordInput: stri
   const { adminEmail, adminPassword } = getAdminConfig();
   const normalizedEmail = (emailInput || '').trim().toLowerCase();
 
-  // Strictly only jothishgandham2@gmail.com is authorized
-  const isEmailAllowed = normalizedEmail === FIXED_ADMIN_EMAIL && normalizedEmail === adminEmail;
-  
-  // Strictly only admin@123456 is authorized
-  const isPasswordCorrect = passwordInput === FIXED_ADMIN_PASSWORD && passwordInput === adminPassword;
+  if (!adminEmail || !adminPassword) return false;
+
+  const isEmailAllowed = normalizedEmail === adminEmail;
+  const isPasswordCorrect = passwordInput === adminPassword;
 
   return isEmailAllowed && isPasswordCorrect;
 }
@@ -101,19 +94,24 @@ export function getTotpUri(secret: string, email: string): string {
 
 // Session signing / verification for admin
 export function signAdminToken(email: string): string {
+  const { adminPassword } = getAdminConfig();
+  if (!adminPassword) throw new Error("Missing admin configuration");
+
   const payload = JSON.stringify({
     email: email.trim().toLowerCase(),
     exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
   });
   const b64Payload = Buffer.from(payload).toString('base64url');
-  const signature = crypto.createHmac('sha256', AUTH_SECRET).update(b64Payload).digest('base64url');
+  const signature = crypto.createHmac('sha256', adminPassword).update(b64Payload).digest('base64url');
   return `${b64Payload}.${signature}`;
 }
 
 export function verifyAdminToken(token: string): { valid: boolean; email?: string } {
-  if (!token || !token.includes('.')) return { valid: false };
+  const { adminPassword, adminEmail } = getAdminConfig();
+  if (!adminPassword || !adminEmail || !token || !token.includes('.')) return { valid: false };
+
   const [b64Payload, signature] = token.split('.');
-  const expectedSignature = crypto.createHmac('sha256', AUTH_SECRET).update(b64Payload).digest('base64url');
+  const expectedSignature = crypto.createHmac('sha256', adminPassword).update(b64Payload).digest('base64url');
 
   if (signature !== expectedSignature) {
     return { valid: false };
@@ -125,7 +123,7 @@ export function verifyAdminToken(token: string): { valid: boolean; email?: strin
       return { valid: false };
     }
     const tokenEmail = (payload.email || '').trim().toLowerCase();
-    if (tokenEmail !== FIXED_ADMIN_EMAIL) {
+    if (tokenEmail !== adminEmail) {
       return { valid: false };
     }
     return { valid: true, email: tokenEmail };

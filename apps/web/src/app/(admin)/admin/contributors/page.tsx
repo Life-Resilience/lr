@@ -1,4 +1,4 @@
-﻿import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { Users, ChevronRight, Search } from "lucide-react";
 import { AdminServiceRoleNotice } from "@/components/admin/AdminServiceRoleNotice";
@@ -13,6 +13,26 @@ export default async function ContributorsPage() {
     .select('id, user_id, name, preferred_name, email, onboarding_status, created_at, primary_role, discovery_source, discovery_details, country')
     .order('created_at', { ascending: false });
 
+  // Fetch all contributions to calculate metrics
+  const { data: contributions } = await supabase
+    .from('contributions')
+    .select('id, user_id, status, updated_at');
+
+  const contributorMetrics = new Map();
+  if (contributions) {
+    contributions.forEach(c => {
+      const current = contributorMetrics.get(c.user_id) || { count: 0, lastActivity: null };
+      current.count += 1;
+      
+      const cDate = new Date(c.updated_at);
+      if (!current.lastActivity || cDate > new Date(current.lastActivity)) {
+        current.lastActivity = c.updated_at;
+      }
+      
+      contributorMetrics.set(c.user_id, current);
+    });
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto px-6 py-10 lg:py-12 animate-in fade-in duration-300">
       <div className="flex flex-col gap-5 mb-10">
@@ -20,7 +40,7 @@ export default async function ContributorsPage() {
           Contributors
         </h1>
         <p className="text-[17px] text-muted-foreground leading-relaxed">
-          Manage and view contributor profiles and their origins.
+          Manage and view contributor profiles, their submissions, and activity.
         </p>
       </div>
 
@@ -37,7 +57,7 @@ export default async function ContributorsPage() {
             />
           </div>
           <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest">
-            {profiles?.length || 0} LOGINS / REGISTRATIONS
+            {profiles?.length || 0} TOTAL
           </div>
         </div>
 
@@ -46,7 +66,8 @@ export default async function ContributorsPage() {
             <thead>
               <tr className="border-b border-border/40 bg-muted/10">
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Name / Email</th>
-                <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Discovery / Origin</th>
+                <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest text-center">Submissions</th>
+                <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Last Activity</th>
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Joined</th>
                 <th className="py-4 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Status</th>
                 <th className="py-4 px-6"></th>
@@ -55,11 +76,14 @@ export default async function ContributorsPage() {
             <tbody>
               {(!profiles || profiles.length === 0) ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">No contributors found.</td>
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
+                    No contributors yet.
+                  </td>
                 </tr>
               ) : (
                 profiles.map((p) => {
-                  const discoveryText = [p.discovery_source, p.country].filter(Boolean).join(" • ");
+                  const metrics = contributorMetrics.get(p.user_id) || { count: 0, lastActivity: null };
+                  
                   return (
                     <tr key={p.id} className="border-b border-border/40 last:border-0 hover:bg-muted/5 transition-colors group">
                       <td className="py-4 px-6">
@@ -68,22 +92,20 @@ export default async function ContributorsPage() {
                           <span className="text-[12px] text-muted-foreground">{p.email}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm text-foreground">{discoveryText || '—'}</span>
-                          {p.discovery_details && (
-                            <span className="text-[12px] text-muted-foreground max-w-[250px] truncate" title={p.discovery_details}>
-                              {p.discovery_details}
-                            </span>
-                          )}
-                        </div>
+                      <td className="py-4 px-6 text-center">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 text-[12px] font-medium text-foreground">
+                          {metrics.count}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-muted-foreground text-sm">
+                        {metrics.lastActivity ? new Date(metrics.lastActivity).toLocaleDateString() : '—'}
                       </td>
                       <td className="py-4 px-6 text-muted-foreground text-sm">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-mono uppercase tracking-widest ${
                           p.onboarding_status === 'COMPLETED' ? 'bg-green-500/10 text-green-600 dark:text-green-500' : 'bg-muted text-muted-foreground'
                         }`}>
-                          {p.onboarding_status}
+                          {p.onboarding_status || 'PENDING'}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right">

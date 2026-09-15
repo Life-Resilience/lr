@@ -1,8 +1,9 @@
-﻿import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminServiceRoleNotice } from "@/components/admin/AdminServiceRoleNotice";
 import Link from "next/link";
 import { Search, Plus, Calendar } from "lucide-react";
 import { CreateOpportunityForm } from "./CreateOpportunityForm";
+import { OpportunityStatusToggle } from "./OpportunityStatusToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ export default async function AdminOpportunitiesPage({
                   <div key={opp.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-widest ${opp.status === 'OPEN' ? 'bg-green-500/10 text-green-600 dark:text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-widest ${opp.status === 'PUBLISHED' ? 'bg-green-500/10 text-green-600 dark:text-green-500' : 'bg-muted text-muted-foreground'}`}>
                           {opp.status}
                         </span>
                         <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -107,11 +108,11 @@ export default async function AdminOpportunitiesPage({
                       <p className="text-[14px] text-muted-foreground max-w-2xl">{opp.description}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+                      <span className="text-[12px] text-muted-foreground flex items-center gap-1.5 mb-2">
                         <Calendar className="w-3.5 h-3.5" />
                         {new Date(opp.created_at).toLocaleDateString()}
                       </span>
-                      {/* You could add a toggle status button here */}
+                      <OpportunityStatusToggle id={opp.id} initialStatus={opp.status} />
                     </div>
                   </div>
                 ))

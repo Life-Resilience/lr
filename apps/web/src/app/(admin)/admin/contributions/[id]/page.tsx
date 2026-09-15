@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
-import { approveContribution, rejectContribution, requestChanges, saveAdminNote } from "@/app/(admin)/admin/actions";
+
 import { AdminReviewControls } from "./AdminReviewControls";
 
 export const dynamic = "force-dynamic";
@@ -69,9 +69,10 @@ export default async function ContributionReviewPage({ params }: { params: Promi
         </div>
         
         <span className={`inline-flex items-center px-4 py-2 rounded-sm text-[12px] font-mono uppercase tracking-widest ${
-          contribution.status === 'APPROVED' ? 'bg-green-500/10 text-green-500' :
+          contribution.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500' :
           contribution.status === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
-          contribution.status === 'NEEDS_CHANGES' ? 'bg-yellow-500/10 text-yellow-600' :
+          contribution.status === 'NEEDS CHANGES' ? 'bg-yellow-500/10 text-yellow-600' :
+          contribution.status === 'UNDER REVIEW' ? 'bg-blue-500/10 text-blue-500' :
           'bg-cyan-500/10 text-cyan-500'
         }`}>
           {contribution.status}
@@ -148,6 +149,43 @@ export default async function ContributionReviewPage({ params }: { params: Promi
                 {renderField("What would you like to share?", contribution.content)}
                 {renderField("Context", metadata.context)}
               </>
+            )}
+
+            {(metadata.updates?.length > 0 || metadata.history?.length > 0) && (
+              <div className="pt-8 border-t border-border/40 flex flex-col gap-6">
+                <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Review History</h3>
+                <div className="flex flex-col gap-4">
+                  {[
+                    ...(metadata.updates || []).map((u: any) => ({ ...u, type: 'contributor' })),
+                    ...(metadata.history || []).map((h: any) => ({ ...h, type: 'admin' }))
+                  ]
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((entry: any, i: number) => (
+                    <div key={i} className={`flex flex-col gap-2 p-5 rounded-sm border ${entry.type === 'admin' ? 'bg-blue-500/5 border-blue-500/10' : 'bg-muted/10 border-border/40'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-mono uppercase tracking-widest ${entry.type === 'admin' ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                          {entry.type === 'admin' ? 'Admin Action' : 'Contributor Update'}
+                        </span>
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+                          {new Date(entry.date).toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      {entry.status && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-background w-fit border border-border/60">
+                          {entry.status}
+                        </span>
+                      )}
+
+                      {(entry.content || entry.message) && (
+                        <p className="text-[14.5px] text-foreground whitespace-pre-wrap leading-relaxed mt-2">
+                          {entry.content || entry.message}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {metadata.file_path && (

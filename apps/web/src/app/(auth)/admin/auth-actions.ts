@@ -6,9 +6,7 @@ import {
   getTotpUri, 
   verifyTOTP, 
   signAdminToken,
-  getAdminConfig,
-  FIXED_ADMIN_EMAIL,
-  FIXED_ADMIN_MFA_SECRET 
+  getAdminConfig
 } from "@/lib/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +23,6 @@ export async function adminLoginAction(prevState: any, formData: FormData) {
     return { success: false, error: "Please enter your email and password." };
   }
 
-  // Strictly confirm only the designated admin credentials
   const isValid = validateAdminCredentials(email, password);
   if (!isValid) {
     return { 
@@ -34,23 +31,20 @@ export async function adminLoginAction(prevState: any, formData: FormData) {
     };
   }
 
-  // Optional Supabase session sync for the authenticated admin
   try {
     const supabase = await createClient();
     await supabase.auth.signInWithPassword({ email, password });
   } catch {
-    // Ignore if Supabase auth user does not match or is unconfigured
   }
 
   const cookieStore = await cookies();
 
-  // Set pending login state strictly for the verified admin email
   cookieStore.set("lr_admin_pending_email", email, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 minutes to complete MFA
+    maxAge: 15 * 60,
   });
 
   return { success: true, redirect: "/admin/mfa" };
@@ -62,21 +56,27 @@ export async function getMfaSetupData() {
   const isLocked = cookieStore.get("lr-admin-locked")?.value === "true";
   const existingSession = cookieStore.get("lr_admin_session")?.value;
 
-  // Strict check: must have passed password authentication or be unlocking an active session
   if (!pendingEmail && !isLocked && !existingSession) {
     return null;
   }
 
-  const email = (pendingEmail || FIXED_ADMIN_EMAIL).trim().toLowerCase();
-  if (email !== FIXED_ADMIN_EMAIL) {
+  const { adminEmail, adminMfaSecret } = getAdminConfig();
+
+  const email = (pendingEmail || adminEmail).trim().toLowerCase();
+  if (email !== adminEmail) {
     return null;
   }
 
-  // Permanent locked secret key: JBSWY3DPEHPK3PXP
-  const secret = FIXED_ADMIN_MFA_SECRET;
+  const secret = adminMfaSecret;
+
+  const [localPart, domain] = email.split('@');
+  const maskedLocal = localPart.length > 1 
+    ? localPart[0] + '*'.repeat(localPart.length - 1)
+    : '*';
+  const maskedEmail = maskedLocal + '@' + domain;
 
   return {
-    email,
+    email: maskedEmail,
     secret,
   };
 }
@@ -91,28 +91,27 @@ export async function verifyMfaAction(code: string) {
     return { success: false, error: "Authentication required. Please sign in with your credentials first." };
   }
 
-  const email = (pendingEmail || FIXED_ADMIN_EMAIL).trim().toLowerCase();
-  if (email !== FIXED_ADMIN_EMAIL) {
+  const { adminEmail, adminMfaSecret } = getAdminConfig();
+
+  const email = (pendingEmail || adminEmail).trim().toLowerCase();
+  if (email !== adminEmail) {
     return { success: false, error: "Unauthorized administrator account." };
   }
 
-  // Permanent locked verification using JBSWY3DPEHPK3PXP
-  const isValid = verifyTOTP(code, FIXED_ADMIN_MFA_SECRET);
+  const isValid = verifyTOTP(code, adminMfaSecret);
   if (!isValid) {
     return { success: false, error: "Incorrect 6-digit code. Please check your authenticator app and try again." };
   }
 
-  // Create valid signed session token
   const token = signAdminToken(email);
   cookieStore.set("lr_admin_session", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   });
 
-  // Clear pending flags & locks
   cookieStore.delete("lr_admin_pending_email");
   cookieStore.delete("lr-admin-locked");
 
@@ -129,7 +128,6 @@ export async function adminLogoutAction() {
     const supabase = await createClient();
     await supabase.auth.signOut();
   } catch {
-    // Ignore
   }
 
   return { success: true };
