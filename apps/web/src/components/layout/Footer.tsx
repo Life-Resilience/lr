@@ -95,6 +95,7 @@ export function Footer() {
               </span>
               <nav className="flex flex-col gap-3" aria-label="Footer Navigation">
                 <FooterLink href="/research">Research</FooterLink>
+                <FooterLink href="/opportunities">Opportunities</FooterLink>
                 <FooterLink href="/about">About</FooterLink>
                 <FooterLink href="/progress">Progress</FooterLink>
                 <FooterLink href="/contact">Contact</FooterLink>

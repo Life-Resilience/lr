@@ -6,16 +6,15 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Copy, FileText, CheckCircle2, Clock, Check, AlertTriangle } from "lucide-react";
 
-export type ContributionStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'NEEDS_INFORMATION' | 'REVIEWED' | 'RESPONSE_AVAILABLE';
+export type ContributionStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER REVIEW' | 'NEEDS CHANGES' | 'ACCEPTED' | 'REJECTED';
 
 const STATUS_MAP: Record<string, { label: string; desc: string }> = {
   DRAFT: { label: "Draft", desc: "This contribution hasn't been submitted yet." },
   SUBMITTED: { label: "Submitted", desc: "Waiting for LR review" },
-  UNDER_REVIEW: { label: "Under Review", desc: "LR is currently reviewing this contribution" },
-  "UNDER REVIEW": { label: "Under Review", desc: "LR is currently reviewing this contribution" }, // legacy fallback
-  NEEDS_INFORMATION: { label: "Needs Information", desc: "LR requires more details" },
-  REVIEWED: { label: "Reviewed", desc: "Review complete. Waiting for final response if applicable." },
-  RESPONSE_AVAILABLE: { label: "Response Available", desc: "A response from LR has been added." },
+  "UNDER REVIEW": { label: "Under Review", desc: "LR is currently reviewing this contribution" },
+  "NEEDS CHANGES": { label: "Needs Changes", desc: "LR requires more details" },
+  ACCEPTED: { label: "Accepted", desc: "Review complete. Contribution accepted." },
+  REJECTED: { label: "Rejected", desc: "Review complete. Contribution rejected." },
 };
 
 const formatDate = (dateStr: string) => {
@@ -104,24 +103,40 @@ export default function ContributionDetailPage() {
   }
 
   const displayId = contribution.display_id || `LR-C-${contribution.id.substring(0, 8).toUpperCase()}`;
-  const cStatus = contribution.status === "UNDER REVIEW" ? "UNDER_REVIEW" : contribution.status;
+  const cStatus = contribution.status;
   const statusMeta = STATUS_MAP[cStatus] || STATUS_MAP.SUBMITTED;
 
   // Determine timeline progress natively
   const timelineSteps = [
     { key: "SUBMITTED", label: "Submitted" },
-    { key: "UNDER_REVIEW", label: "Under Review" },
-    { key: "REVIEWED", label: "Reviewed" }
+    { key: "UNDER REVIEW", label: "Under Review" },
+    { key: "COMPLETED", label: cStatus === "REJECTED" ? "Rejected" : "Accepted" }
   ];
   
   let currentStepIndex = 0;
-  if (cStatus === "UNDER_REVIEW") currentStepIndex = 1;
-  if (cStatus === "REVIEWED" || cStatus === "RESPONSE_AVAILABLE") currentStepIndex = 2;
-  if (cStatus === "NEEDS_INFORMATION") currentStepIndex = 1;
+  if (cStatus === "UNDER REVIEW" || cStatus === "NEEDS CHANGES") currentStepIndex = 1;
+  if (cStatus === "ACCEPTED" || cStatus === "REJECTED") currentStepIndex = 2;
 
   return (
     <div className="p-6 lg:p-12 max-w-4xl mx-auto w-full pb-32 animate-in fade-in duration-300">
       
+      {cStatus === "ACCEPTED" && (
+        <div className="mb-12 bg-muted/5 border border-border/40 p-6 md:p-8 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xl font-medium tracking-tight text-foreground">Want to share how contributing to LR felt?</h3>
+            <p className="text-[14px] text-muted-foreground max-w-lg leading-relaxed">
+              Your contribution was accepted. We'd love to hear your experience. Your feedback may be published on the public website to help others.
+            </p>
+          </div>
+          <Link 
+            href={`/contributor/feedback?contribution_id=${contribution.id}`}
+            className="shrink-0 flex items-center justify-center bg-foreground text-background text-[12px] font-semibold uppercase tracking-widest h-12 px-6 rounded-sm hover:bg-foreground/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4"
+          >
+            SHARE FEEDBACK
+          </Link>
+        </div>
+      )}
+
       {isSuccess ? (
         <div className="mb-16 border-b border-border/40 pb-16">
           <div className="mb-8 flex flex-col gap-1 font-mono text-[11px] uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -263,48 +278,55 @@ export default function ContributionDetailPage() {
         </div>
       )}
 
-      {/* Needs Info State */}
-      {cStatus === "NEEDS_INFORMATION" && (
+      {/* Needs Changes State */}
+      {cStatus === "NEEDS CHANGES" && (
         <div className="mb-16 border border-yellow-600/30 bg-yellow-600/5 p-6 md:p-8 rounded-sm">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
-            <h3 className="font-mono text-[11px] uppercase tracking-widest text-yellow-600 dark:text-yellow-500 font-semibold">Needs Information</h3>
+            <h3 className="font-mono text-[11px] uppercase tracking-widest text-yellow-600 dark:text-yellow-500 font-semibold">Needs Changes</h3>
           </div>
           <p className="text-[14.5px] text-foreground mb-6 leading-relaxed">
-            LR has requested additional information about this contribution. Please check the response below.
+            LR has requested additional information or changes. Please review the response below and provide your updates.
           </p>
-          <button className="bg-foreground text-background px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors">
-            PROVIDE INFORMATION →
-          </button>
+          
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const updateText = (form.elements.namedItem("updateText") as HTMLTextAreaElement).value;
+              if (!updateText.trim()) return;
+              
+              const btn = form.querySelector('button');
+              if (btn) btn.disabled = true;
+              
+              try {
+                const { resubmitContribution } = await import('../../actions');
+                await resubmitContribution(id, updateText);
+                router.refresh(); // Or reload window
+                window.location.reload();
+              } catch (err: any) {
+                alert(err.message);
+                if (btn) btn.disabled = false;
+              }
+            }}
+            className="flex flex-col gap-4"
+          >
+            <textarea
+              name="updateText"
+              rows={4}
+              required
+              placeholder="Provide the requested information or describe your changes..."
+              className="w-full bg-background border border-border/60 p-4 text-sm focus:outline-none focus:border-foreground transition-colors resize-y rounded-sm"
+            />
+            <button 
+              type="submit"
+              className="bg-foreground text-background px-6 h-10 rounded-sm text-[11px] font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors w-fit"
+            >
+              SUBMIT CHANGES →
+            </button>
+          </form>
         </div>
       )}
-
-      {/* LR Response Section */}
-      <div className="mb-16">
-        <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3 mb-6">
-          LR RESPONSE
-        </h2>
-        
-        {contribution.admin_response ? (
-          <div className="bg-background border border-border/40 rounded-sm p-6 md:p-8 flex flex-col gap-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 bg-primary rounded-full" />
-              <span className="text-[12px] font-medium text-foreground uppercase tracking-widest">Response Available</span>
-            </div>
-            <p className="text-[15px] text-foreground whitespace-pre-wrap leading-relaxed">
-              {contribution.admin_response}
-            </p>
-          </div>
-        ) : (
-          <div className="bg-muted/5 border border-border/40 rounded-sm p-6 md:p-8 text-center flex flex-col items-center justify-center gap-3">
-            <Clock className="w-5 h-5 text-muted-foreground mb-1" />
-            <span className="text-[14px] font-medium text-foreground">Waiting for LR review</span>
-            <span className="text-[13.5px] text-muted-foreground max-w-sm">
-              No response has been added yet. If the research team has something to share, it will appear here.
-            </span>
-          </div>
-        )}
-      </div>
 
       {/* The Contribution Content */}
       <div className="mb-16">
@@ -326,7 +348,7 @@ export default function ContributionDetailPage() {
               <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Context & Details</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 gap-x-12">
                 {Object.entries(contribution.metadata).map(([key, value]) => {
-                  if (key === 'file_name' || key === 'file_path' || !value) return null;
+                  if (key === 'file_name' || key === 'file_path' || key === 'updates' || key === 'history' || !value) return null;
                   return (
                     <div key={key} className="flex flex-col gap-2">
                       <span className="text-[12px] font-medium text-muted-foreground">{formatKey(key)}</span>
@@ -339,6 +361,59 @@ export default function ContributionDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Unified Review History */}
+      {(contribution.metadata?.updates?.length > 0 || contribution.metadata?.history?.length > 0) ? (
+        <div className="mb-16">
+          <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3 mb-6">
+            REVIEW HISTORY
+          </h2>
+          <div className="flex flex-col gap-6">
+            {[
+              ...(contribution.metadata.updates || []).map((u: any) => ({ ...u, type: 'contributor' })),
+              ...(contribution.metadata.history || []).map((h: any) => ({ ...h, type: 'admin' }))
+            ]
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .map((entry: any, i: number) => (
+              <div key={i} className={`flex flex-col gap-2 p-5 rounded-sm border ${entry.type === 'admin' ? 'bg-blue-500/5 border-blue-500/10' : 'bg-muted/10 border-border/40'}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-mono uppercase tracking-widest ${entry.type === 'admin' ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                    {entry.type === 'admin' ? 'LR Admin Response' : 'Your Update'}
+                  </span>
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+                    {new Date(entry.date).toLocaleString()}
+                  </span>
+                </div>
+                
+                {entry.status && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-mono uppercase tracking-widest bg-background w-fit border border-border/60 mt-1">
+                    {entry.status}
+                  </span>
+                )}
+
+                {(entry.content || entry.message) && (
+                  <p className="text-[14.5px] text-foreground whitespace-pre-wrap leading-relaxed mt-2">
+                    {entry.content || entry.message}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-16">
+          <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-3 mb-6">
+            REVIEW HISTORY
+          </h2>
+          <div className="bg-muted/5 border border-border/40 rounded-sm p-6 md:p-8 text-center flex flex-col items-center justify-center gap-3">
+            <Clock className="w-5 h-5 text-muted-foreground mb-1" />
+            <span className="text-[14px] font-medium text-foreground">Waiting for LR review</span>
+            <span className="text-[13.5px] text-muted-foreground max-w-sm">
+              No response has been added yet. If the research team has something to share, it will appear here.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Supporting Material */}
       {contribution.metadata?.file_name && fileUrl && (

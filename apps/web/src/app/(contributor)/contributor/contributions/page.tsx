@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowRight, FileText, Clock, CheckCircle2, MessageSquare } from "lucide-react";
 
@@ -29,22 +30,23 @@ export interface Contribution {
 const STATUS_MAP: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   DRAFT: { label: "Draft", color: "text-muted-foreground", icon: FileText },
   SUBMITTED: { label: "Submitted", color: "text-foreground", icon: CheckCircle2 },
-  UNDER_REVIEW: { label: "Under Review", color: "text-blue-500 dark:text-blue-400", icon: Clock },
-  "UNDER REVIEW": { label: "Under Review", color: "text-blue-500 dark:text-blue-400", icon: Clock }, // Legacy fallback
-  NEEDS_INFORMATION: { label: "Needs Info", color: "text-yellow-600 dark:text-yellow-500", icon: Clock },
-  REVIEWED: { label: "Reviewed", color: "text-green-600 dark:text-green-500", icon: CheckCircle2 },
-  RESPONSE_AVAILABLE: { label: "Response Available", color: "text-primary", icon: MessageSquare },
+  "UNDER REVIEW": { label: "Under Review", color: "text-blue-500 dark:text-blue-400", icon: Clock },
+  "NEEDS CHANGES": { label: "Needs Changes", color: "text-yellow-600 dark:text-yellow-500", icon: Clock },
+  ACCEPTED: { label: "Accepted", color: "text-green-600 dark:text-green-500", icon: CheckCircle2 },
+  REJECTED: { label: "Rejected", color: "text-red-500", icon: CheckCircle2 },
 };
 
 const formatDate = (dateStr: string) => {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(dateStr));
 };
 
-export default function ContributionsListPage() {
+function ContributionsContent() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const initialFilter = searchParams.get('filter') || "ALL";
+  const [activeFilter, setActiveFilter] = useState<string>(initialFilter);
 
   useEffect(() => {
     async function loadData() {
@@ -64,21 +66,26 @@ export default function ContributionsListPage() {
 
   // Derived Stats
   const total = contributions.length;
-  const underReview = contributions.filter(c => c.status === 'UNDER_REVIEW' || c.status === 'UNDER REVIEW').length;
-  const responded = contributions.filter(c => c.status === 'RESPONSE_AVAILABLE' || c.admin_response).length;
+  const underReview = contributions.filter(c => c.status === 'UNDER REVIEW').length;
+  const needsChanges = contributions.filter(c => c.status === 'NEEDS CHANGES').length;
+  const accepted = contributions.filter(c => c.status === 'ACCEPTED').length;
   const drafts = contributions.filter(c => c.status === 'DRAFT').length;
 
   // Filtering
   const filteredContributions = contributions.filter(c => {
     if (activeFilter === "ALL") return true;
+    if (activeFilter === "PENDING" && ['SUBMITTED', 'UNDER REVIEW', 'NEEDS CHANGES'].includes(c.status)) return true;
+    if (activeFilter === "REVIEWED" && ['ACCEPTED', 'REJECTED'].includes(c.status)) return true;
     if (activeFilter === "DRAFTS" && c.status === "DRAFT") return true;
     if (activeFilter === "SUBMITTED" && c.status === "SUBMITTED") return true;
-    if (activeFilter === "UNDER REVIEW" && (c.status === "UNDER_REVIEW" || c.status === "UNDER REVIEW")) return true;
-    if (activeFilter === "RESPONDED" && (c.status === "RESPONSE_AVAILABLE" || c.admin_response)) return true;
+    if (activeFilter === "UNDER REVIEW" && c.status === "UNDER REVIEW") return true;
+    if (activeFilter === "NEEDS CHANGES" && c.status === "NEEDS CHANGES") return true;
+    if (activeFilter === "ACCEPTED" && c.status === "ACCEPTED") return true;
+    if (activeFilter === "REJECTED" && c.status === "REJECTED") return true;
     return false;
   });
 
-  const FILTERS = ["ALL", "DRAFTS", "SUBMITTED", "UNDER REVIEW", "RESPONDED"];
+  const FILTERS = ["ALL", "PENDING", "REVIEWED", "DRAFTS", "SUBMITTED", "UNDER REVIEW", "NEEDS CHANGES", "ACCEPTED", "REJECTED"];
 
   return (
     <div className="p-6 lg:p-12 max-w-5xl mx-auto w-full pb-32 animate-in fade-in duration-300">
@@ -102,11 +109,12 @@ export default function ContributionsListPage() {
       </div>
 
       {/* Dashboard Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
         {[
           { label: "TOTAL", value: total },
           { label: "UNDER REVIEW", value: underReview },
-          { label: "RESPONDED", value: responded },
+          { label: "NEEDS CHANGES", value: needsChanges },
+          { label: "ACCEPTED", value: accepted },
           { label: "DRAFTS", value: drafts },
         ].map((stat) => (
           <div key={stat.label} className="border border-border/40 bg-muted/5 p-5 flex flex-col gap-1 rounded-sm">
@@ -220,5 +228,13 @@ export default function ContributionsListPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ContributionsListPage() {
+  return (
+    <Suspense fallback={<div className="p-12 animate-pulse"><div className="h-10 w-48 bg-muted/20 mb-8 rounded-sm"/><div className="h-32 bg-muted/10 rounded-sm"/></div>}>
+      <ContributionsContent />
+    </Suspense>
   );
 }

@@ -1,115 +1,16 @@
-'use client';
-
-import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-
-// ============================================================
-// SCROLL REVEAL ANIMATION COMPONENT
-// ============================================================
-function Reveal({ 
-  children, 
-  delay = 0, 
-  className = "" 
-}: { 
-  children: React.ReactNode; 
-  delay?: number; 
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      } ${className}`}
-      style={{ transitionDelay: isVisible ? `${delay}ms` : '0ms' }}
-    >
-      {children}
-    </div>
-  );
-}
+import { createClient } from '@/lib/supabase/server';
+import { Reveal } from '../contribute/Reveal';
 
 // ============================================================
 // RESEARCH DATA MODEL
 // ============================================================
-type ResearchStatus = 'COMPLETED' | 'IN PROGRESS' | 'PENDING';
 
-interface ResearchEntry {
-  id: string;
-  title: string;
-  status: ResearchStatus;
-  progress?: number;
-  updated?: string;
-  description: string;
-  topics?: string[];
-  href: string;
-}
-
-const RESEARCH_DATA: ResearchEntry[] = [
-  {
-    id: 'LR-01',
-    title: 'Social Engineering & Impersonation Attacks',
-    status: 'COMPLETED',
-    progress: 100,
-    updated: 'SEP 2026',
-    description: 'An investigation into how attackers manipulate human psychology to bypass technical security controls.',
-    topics: ['Digital Arrest', 'Fake KYC', 'OTP Theft'],
-    href: '/research/social-engineering',
-  },
-  {
-    id: 'LR-02',
-    title: 'Phishing',
-    status: 'IN PROGRESS',
-    progress: 40,
-    updated: 'ACTIVE',
-    description: 'Analyzing the evolution of deceptive communications across email, SMS, and messaging platforms.',
-    href: '/research/phishing',
-  },
-  {
-    id: 'LR-03',
-    title: 'Malware',
-    status: 'PENDING',
-    description: 'Studying the deployment vectors and execution patterns of malicious software affecting end users.',
-    href: '/research/malware',
-  },
-  {
-    id: 'LR-04',
-    title: 'Digital Fraud',
-    status: 'PENDING',
-    description: 'Examining the systemic mechanisms behind financial exploitation, payment vulnerabilities, and synthetic fraud at scale.',
-    href: '/research/digital-fraud',
-  },
-  {
-    id: 'LR-05',
-    title: 'Identity Security',
-    status: 'PENDING',
-    description: 'Investigating vulnerabilities in authentication protocols, credential theft, and decentralized access management.',
-    href: '/research/identity-security',
-  },
-];
 
 // ============================================================
 // RESEARCH ROW COMPONENT
 // ============================================================
-function ResearchRow({ entry }: { entry: ResearchEntry }) {
+function ResearchRow({ entry }: { entry: any }) {
   const isCompleted = entry.status === 'COMPLETED';
   const isPlanned = entry.status === 'PENDING';
   
@@ -145,7 +46,7 @@ function ResearchRow({ entry }: { entry: ResearchEntry }) {
               Key Topics
             </span>
             <div className="flex flex-col gap-2 border-l border-border/60 pl-5">
-              {entry.topics.map(topic => (
+              {entry.topics.map((topic: string) => (
                 <span key={topic} className="text-base text-muted-foreground tracking-wide">
                   {topic}
                 </span>
@@ -223,13 +124,28 @@ function ResearchRow({ entry }: { entry: ResearchEntry }) {
 // ============================================================
 // PAGE COMPONENT
 // ============================================================
-export default function ResearchPage() {
+export default async function ResearchPage() {
+  const supabase = await createClient();
+  const { data: dbResearchAreas } = await supabase
+    .from('research_areas')
+    .select('*')
+    .eq('is_public', true)
+    .order('created_at', { ascending: true });
+
+  const areas = (dbResearchAreas || []).map(ra => ({
+    id: ra.slug, // Or ra.id if preferred, but we need something for href
+    title: ra.title,
+    status: ra.status,
+    description: ra.description,
+    href: `/research/${ra.slug}`
+  }));
+
   // Compute index statistics dynamically
   const stats = {
-    total: String(RESEARCH_DATA.length).padStart(2, '0'),
-    completed: String(RESEARCH_DATA.filter(r => r.status === 'COMPLETED').length).padStart(2, '0'),
-    inProgress: String(RESEARCH_DATA.filter(r => r.status === 'IN PROGRESS').length).padStart(2, '0'),
-    pending: String(RESEARCH_DATA.filter(r => r.status === 'PENDING').length).padStart(2, '0'),
+    total: String(areas.length).padStart(2, '0'),
+    completed: String(areas.filter(r => r.status === 'COMPLETED').length).padStart(2, '0'),
+    inProgress: String(areas.filter(r => r.status === 'IN PROGRESS').length).padStart(2, '0'),
+    pending: String(areas.filter(r => r.status === 'PENDING').length).padStart(2, '0'),
   };
 
   return (
@@ -302,7 +218,7 @@ export default function ResearchPage() {
           </Reveal>
 
           <div className="flex flex-col border-b border-border/40">
-            {RESEARCH_DATA.map((entry, index) => (
+            {areas.map((entry: any, index) => (
               <Reveal key={entry.id} delay={index * 150}>
                 <ResearchRow entry={entry} />
               </Reveal>

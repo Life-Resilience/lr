@@ -1,61 +1,58 @@
-import Link from "next/link";
-import Image from "next/image";
+import { Suspense } from 'react';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { AdminNavbar } from '@/components/admin/AdminNavbar';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminSessionGuard } from '@/components/admin/AdminSessionGuard';
+import { verifyAdminToken, getAdminConfig } from '@/lib/admin-auth';
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-surface flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/lr-logo.svg" alt="LR Logo" width={24} height={24} className="h-6 w-auto" />
-            <span className="font-semibold text-sm tracking-wide text-foreground">
-              LR Command Center
-            </span>
-          </Link>
-        </div>
-        
-        <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-1">
-          <Link href="/admin" className="px-3 py-2 text-sm font-medium text-foreground bg-border/50 rounded-md">Dashboard</Link>
-          <div className="mt-6 mb-2 px-3 text-xs font-bold tracking-widest uppercase text-muted">Research System</div>
-          <Link href="/admin/areas" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Research Areas</Link>
-          <Link href="/admin/projects" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Research Projects</Link>
-          <Link href="/admin/questions" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Questions</Link>
-          
-          <div className="mt-6 mb-2 px-3 text-xs font-bold tracking-widest uppercase text-muted">Data</div>
-          <Link href="/admin/observations" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Observations</Link>
-          <Link href="/admin/evidence" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Evidence</Link>
-          <Link href="/admin/sources" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Sources</Link>
-          
-          <div className="mt-6 mb-2 px-3 text-xs font-bold tracking-widest uppercase text-muted">Outputs</div>
-          <Link href="/admin/findings" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Findings</Link>
-          <Link href="/admin/case-studies" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Case Studies</Link>
-          <Link href="/admin/attack-patterns" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Attack Patterns</Link>
-          
-          <div className="mt-6 mb-2 px-3 text-xs font-bold tracking-widest uppercase text-muted">Community</div>
-          <Link href="/admin/contributions" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors">Contributions</Link>
-        </nav>
-        
-        <div className="p-4 border-t border-border">
-          <Link href="/admin/settings" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground flex items-center gap-2">
-            Settings
-          </Link>
-        </div>
-      </aside>
+  const cookieStore = await cookies();
+  const isLocked = cookieStore.get('lr-admin-locked')?.value === 'true';
+  const sessionToken = cookieStore.get('lr_admin_session')?.value;
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background">
-        <header className="h-16 flex items-center justify-end px-8 border-b border-border bg-surface/50">
-          <div className="text-sm font-medium text-muted">Admin User</div>
-        </header>
-        <div className="p-8 max-w-6xl mx-auto">
-          {children}
+  if (isLocked) {
+    redirect('/admin/mfa');
+  }
+
+  if (!sessionToken) {
+    redirect('/admin/login');
+  }
+
+  const { adminEmail } = getAdminConfig();
+  const { valid, email } = verifyAdminToken(sessionToken);
+  
+  if (!valid || !adminEmail || email?.toLowerCase() !== adminEmail) {
+    redirect('/admin/login?error=unauthorized');
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background selection:bg-foreground selection:text-background">
+      <AdminNavbar />
+      
+      <div className="flex-1 flex flex-col md:flex-row pt-[72px]">
+        <AdminSidebar />
+        
+        <main className="flex-1 w-full relative">
+          <Suspense fallback={<div className="w-full flex justify-center py-24"><div className="w-4 h-4 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" /></div>}>
+            <AdminSessionGuard>
+              {children}
+            </AdminSessionGuard>
+          </Suspense>
+        </main>
+      </div>
+
+      <footer className="border-t border-border/40 py-6 px-6 lg:px-8 mt-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <span>Life & Resilience</span>
+          <span>Admin Workspace</span>
+          <span>Secure Session</span>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }
